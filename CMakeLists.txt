@@ -11,8 +11,9 @@ add_subdirectory( ext/score )
 
 add_subdirectory( src/cdc_lib/core )
 add_subdirectory( src/cdc_lib/render )
+add_subdirectory( src/cdc_lib/resource )
 
-target_link_libraries( cdc_lib INTERFACE cdc_lib_core cdc_lib_render )
+target_link_libraries( cdc_lib INTERFACE cdc_lib_core cdc_lib_render cdc_lib_resource )
 
 target_include_directories( cdc_lib INTERFACE
   src )
