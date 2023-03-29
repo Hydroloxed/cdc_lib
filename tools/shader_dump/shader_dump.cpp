@@ -1,8 +1,8 @@
+#include <cdc_lib/render/tras/pc_w/tras_pc_w_shader.h>
 #include <cinttypes>
 #include <cstdlib>
 #include <cstdio>
 #include <fstream>
-#include <render/pc_w/tras/pc_w_tras_shader.h>
 #include <score/binary_io/binary_io.h>
 
 int main( int argc, char** argv )

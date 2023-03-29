@@ -8,8 +8,8 @@ endif()
 
 if( CDC_LIB_TARGET_TRAS )
     target_sources( cdc_lib_render PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/pc_w/tras/pc_w_tras_shader.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/pc_w/tras/pc_w_tras_shader.cpp )
+        ${CMAKE_CURRENT_SOURCE_DIR}/tras/pc_w/tras_pc_w_shader.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tras/pc_w/tras_pc_w_shader.h )
 endif()
 target_compile_features( cdc_lib_render PUBLIC cxx_std_20 )
 target_include_directories( cdc_lib_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ )

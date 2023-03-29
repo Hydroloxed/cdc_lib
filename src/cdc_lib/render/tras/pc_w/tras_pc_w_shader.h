@@ -1,5 +1,5 @@
-#ifndef CDC_LIB_RENDER_PC_W_TRAS_PC_W_TRAS_SHADER_H
-#define CDC_LIB_RENDER_PC_W_TRAS_PC_W_TRAS_SHADER_H
+#ifndef CDC_LIB_RENDER_TRAS_PC_W_TRAS_PC_W_SHADER_H
+#define CDC_LIB_RENDER_TRAS_PC_W_TRAS_PC_W_SHADER_H
 #include <cstdint>
 #include <memory>
 #include <score/binary_io/binary_io.h>
