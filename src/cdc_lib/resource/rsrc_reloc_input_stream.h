@@ -15,6 +15,20 @@ namespace cdc_lib::resource
     {
         struct scope
         {
+            scope() = default;
+            /* NOTE:
+             *      We shouldn't need to provide a constructor here,
+             *      but sadly Clang doesn't support the proposal P0960 (part of C++20).
+             *      This is needed for `emplace` container functions to work properly with aggregate initialization.
+             *      As a workaround, we provide a user-defined constructor, which does the same task.
+             */
+            scope( std::size_t a_offset,
+                   std::size_t a_bytes_read,
+                   auto&& a_debug_name ) :
+                offset{a_offset},
+                bytes_read{a_bytes_read},
+                debug_name{a_debug_name}
+            {}
             std::size_t offset{0};
             std::size_t bytes_read{0};
             std::string debug_name{};
