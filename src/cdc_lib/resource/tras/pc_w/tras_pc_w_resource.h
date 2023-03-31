@@ -23,7 +23,7 @@ namespace cdc_lib::resource::tras::pc_w
         {
             std::uint64_t ret{0};
             ret |= (resource_id & k_resource_id_mask) << k_resource_id_shift;
-            ret |= (section_type & k_section_type_mask) << k_section_type_shift;
+            ret |= (std::uint64_t) section_type << k_section_type_shift;
             return ret;
         }
 
