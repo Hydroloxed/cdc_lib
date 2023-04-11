@@ -1,12 +1,12 @@
 #ifndef CDC_LIB_RESOURCE_RSRC_RELOC_INPUT_STREAM_H
 #define CDC_LIB_RESOURCE_RSRC_RELOC_INPUT_STREAM_H
+#include "rsrc_relocation.h"
 #include <algorithm>
 #include <cassert>
 #include <exception>
 #include <optional>
 #include <score/binary_io/binary_io.h>
 #include <stack>
-#include "rsrc_relocation.h"
 
 namespace cdc_lib::resource
 {
@@ -45,6 +45,10 @@ namespace cdc_lib::resource
         {
             rebase();
         }
+        reloc_istream( reloc_istream&& ) = default;
+        reloc_istream( const reloc_istream& ) = delete;
+        reloc_istream& operator=( const reloc_istream& ) = delete;
+        reloc_istream& operator=( reloc_istream&& ) = delete;
         ~reloc_istream() override = default;
         void read( std::span< std::byte > a_out_bytes ) override
         {
@@ -62,7 +66,7 @@ namespace cdc_lib::resource
         void rebase() { top_level_scope.offset = underlying_interface.tell(); }
         scope* start_scope( std::size_t a_offset, std::string_view a_debug_name = "<unnamed>" )
         {
-            auto s = &scope_stack.emplace( a_offset, 0, std::string{ a_debug_name } );
+            auto* s = &scope_stack.emplace( a_offset, 0, std::string{ a_debug_name } );
             update_scope();
             return s;
         }
@@ -71,7 +75,7 @@ namespace cdc_lib::resource
             // We've basically 'read' a relocation now;
             // if we seek back, we expect to be past the pointer which led us to our current scope.
             get_current_scope().bytes_read += pointer_size;
-            auto relocation_here = get_relocation_at_cursor();
+            auto* relocation_here = get_relocation_at_cursor();
             if( !relocation_here || relocation_here->is_external() )
             {
                 underlying_interface.seek( underlying_interface.tell() + pointer_size );
@@ -106,14 +110,14 @@ namespace cdc_lib::resource
         }
         [[nodiscard]] cooked_relocation* try_read_relocation() noexcept
         {
-            auto reloc = get_relocation_at_cursor();
+            auto* reloc = get_relocation_at_cursor();
             get_current_scope().bytes_read += pointer_size;
             underlying_interface.seek( underlying_interface.tell() + pointer_size );
             return reloc;
         }
         [[nodiscard]] cooked_relocation* read_relocation()
         {
-            auto reloc = try_read_relocation();
+            auto* reloc = try_read_relocation();
             if( !reloc )
                 throw std::range_error{ "Could not read relocation." };
             return reloc;
@@ -140,22 +144,24 @@ namespace cdc_lib::resource
     class reloc_istream_scope
     {
     public:
-        reloc_istream_scope( reloc_istream& a_stream, std::string_view a_debug_name = "<unnamed>" ) :
-            stream{a_stream}
-        {
-            scope = stream.start_scope( a_debug_name );
-        }
+        explicit reloc_istream_scope( reloc_istream& a_stream, std::string_view a_debug_name = "<unnamed>" ) :
+            stream{a_stream},
+            scope(stream.start_scope( a_debug_name ))
+        {}
         reloc_istream_scope( reloc_istream& a_stream, std::size_t a_offset, std::string_view  a_debug_name = "<unnamed>" ) :
-            stream{a_stream}
-        {
-            scope = stream.start_scope( a_offset, a_debug_name );
-        }
+            stream{a_stream},
+            scope(stream.start_scope( a_offset, a_debug_name ))
+        {}
+        reloc_istream_scope( reloc_istream_scope&& ) = default;
+        reloc_istream_scope( const reloc_istream_scope& ) = delete;
+        reloc_istream_scope& operator=( const reloc_istream_scope& ) = delete;
+        reloc_istream_scope& operator=( reloc_istream_scope&& ) = delete;
         ~reloc_istream_scope()
         {
             if( scope )
                 stream.end_scope();
         }
-        operator bool() const { return scope; }
+        explicit operator bool() const { return scope != nullptr; }
     private:
         reloc_istream& stream;
         reloc_istream::scope* scope;

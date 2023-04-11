@@ -9,9 +9,9 @@ namespace cdc_lib::resource::tras::pc_w
         constexpr static std::uint64_t k_resource_id_shift = 0;
         constexpr static std::uint64_t k_resource_id_mask = UINT32_MAX;
         constexpr static std::uint64_t k_section_type_shift = 32;
-        constexpr static std::uint64_t k_section_type_mask = (std::uint64_t) UINT8_MAX << k_section_type_shift;
+        constexpr static std::uint64_t k_section_type_mask = static_cast< std::uint64_t >( UINT8_MAX ) << k_section_type_shift;
     public:
-        resource_ref_id( std::uint64_t a_packed ) :
+        explicit resource_ref_id( std::uint64_t a_packed ) :
             resource_id( (a_packed & k_resource_id_mask) >> k_resource_id_shift ),
             section_type( (a_packed & k_section_type_mask) >> k_section_type_shift )
         {}
@@ -19,11 +19,11 @@ namespace cdc_lib::resource::tras::pc_w
             resource_id( a_resource_id ),
             section_type( a_section_type )
         {}
-        std::uint64_t pack() const noexcept
+        [[nodiscard]] std::uint64_t pack() const noexcept
         {
             std::uint64_t ret{0};
             ret |= (resource_id & k_resource_id_mask) << k_resource_id_shift;
-            ret |= (std::uint64_t) section_type << k_section_type_shift;
+            ret |= static_cast< std::uint64_t >( section_type ) << k_section_type_shift;
             return ret;
         }
 
@@ -33,12 +33,12 @@ namespace cdc_lib::resource::tras::pc_w
 
     inline resource_ref_id unpack_section_guid( std::uint32_t a_packed_guid )
     {
-        constexpr auto k_resource_id_mask  = ((1 << 25) - 1) << 0;
-        constexpr auto k_section_type_shift = 25;
-        constexpr auto k_section_type_mask = ((1 << 7) - 1) << 25;
+        constexpr auto k_resource_id_mask  = ((1u << 25u) - 1u) << 0u;
+        constexpr auto k_section_type_shift = 25u;
+        constexpr auto k_section_type_mask = ((1u << 7u) - 1u) << 25u;
         const auto resource_id  = a_packed_guid & k_resource_id_mask;
         const auto section_type = (a_packed_guid & k_section_type_mask) >> k_section_type_shift;
-        return resource_ref_id{resource_id, static_cast< std::uint8_t >( section_type ) };
+        return resource_ref_id{resource_id, static_cast< std::uint8_t >( section_type )};
     }
 }
 
