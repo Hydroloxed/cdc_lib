@@ -1,16 +1,16 @@
-#include <cassert>
-#include <cstdint>
 #include "tras_pc_w_relocation.h"
 #include "tras_pc_w_resource.h"
+#include <cassert>
+#include <cstdint>
 
 namespace cdc_lib::resource::tras::pc_w
 {
     namespace
     {
-        constexpr std::uint32_t k_resource_pointer_resource_id_offset_mask = (1 << 25) - 1;
+        constexpr std::uint32_t k_resource_pointer_resource_id_offset_mask = (1u << 25u) - 1u;
         [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_id_offset_shift = 0;
         constexpr std::uint32_t k_resource_pointer_resource_type_shift = 25;
-        [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_type_mask = ((1 << 7) - 1) << k_resource_pointer_resource_type_shift;
+        [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_type_mask = ((1u << 7u) - 1u) << k_resource_pointer_resource_type_shift;
     }
 
     [[nodiscard]] std::vector< cooked_relocation > load_relocation_table( score::binary_io::input_interface& a_input_interface )

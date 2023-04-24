@@ -31,7 +31,7 @@ namespace cdc_lib::resource::tras::pc_w
         std::uint8_t  section_type{0};
     };
 
-    inline resource_ref_id unpack_section_guid( std::uint32_t a_packed_guid )
+    [[nodiscard]] inline resource_ref_id unpack_section_guid( std::uint32_t a_packed_guid )
     {
         constexpr auto k_resource_id_mask  = ((1u << 25u) - 1u) << 0u;
         constexpr auto k_section_type_shift = 25u;
