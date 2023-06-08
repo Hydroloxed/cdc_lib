@@ -204,7 +204,7 @@ namespace cdc_lib::render::tras::pc_w
                 continue;
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             auto& pass = ret->passes[i];
-            pass.emplace();
+            pass = material_data::pass_data{};
             if( auto* ps = a_istream.try_read_relocation() )
                 pass->pixel_shader = ps->resource.value();
             if( auto* vs = a_istream.try_read_relocation() )
@@ -239,9 +239,10 @@ namespace cdc_lib::render::tras::pc_w
             {
                 const auto constant_count = read< std::uint32_t >( a_istream );
                 a_list.constants.reserve( constant_count );
-                if( !constant_count )
-                    return;
                 auto cl_scope = resource::reloc_istream_scope{ a_istream, "mat.constant_list" };
+                if( !cl_scope )
+                    return;
+
                 for( std::uint32_t i = 0; i < constant_count; i++ )
                     a_list.constants.push_back( read< float >( a_istream ) );
             };
@@ -257,10 +258,11 @@ namespace cdc_lib::render::tras::pc_w
             read( a_istream, pass->pixel_constants.extended_instance_param_count );
             read( a_istream, pass->vertex_constants.first_extended_instance_param );
             read( a_istream, pass->vertex_constants.extended_instance_param_count );
-            if( a_istream.try_read_relocation() )
             {
                 auto hdd_scope = resource::reloc_istream_scope{a_istream, "mat.pass.hull_domain_data"};
-                pass->hull_domain_shader_data = {};
+                if( !hdd_scope )
+                    continue;
+                pass->hull_domain_shader_data = material_data::hull_domain_data{};
                 if( auto* hs = a_istream.try_read_relocation() )
                     pass->hull_domain_shader_data->hull_shader = hs->resource.value();
                 if( auto* ds = a_istream.try_read_relocation() )
