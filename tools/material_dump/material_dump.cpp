@@ -9,6 +9,12 @@
 namespace c_res = cdc_lib::resource;
 namespace c_ren = cdc_lib::render;
 
+void dump_subsections( std::span< c_res::reloc_stream_subsection_info > a_subsections )
+{
+    for( const auto& subsection : a_subsections )
+        std::printf( "subsection '%s' at 0x%zx, read 0x%zx bytes\n", subsection.name.c_str(), subsection.start_offset, subsection.bytes_read );
+}
+
 void dump_resource_ref( const char* a_label, const c_res::resource_ref& a_ref )
 {
     if( !a_ref.is_null_reference() )
@@ -87,7 +93,7 @@ void dump_material( c_ren::tras::pc_w::material_data& a_material )
         if( !pass.has_value() )
             continue;
         std::printf( "  %s pass (%d):\n",
-                    cdc_lib::render::tras::pc_w::material_data::pass_index_debugstr.lookup_or( i - 1, "YOU SHOULD NOT SEE THIS!!!!!!" ),
+                    md::pass_index_debugstr.lookup_or( i - 1, "YOU SHOULD NOT SEE THIS!!!!!!" ),
                     i - 1 );
         dump_resource_ref( "    ps", pass->pixel_shader );
         dump_resource_ref( "    vs", pass->vertex_shader );
@@ -113,11 +119,28 @@ int main( int argc, char** argv )
 {
     if( argc < 2 )
         return EXIT_FAILURE;
-    auto stream = std::ifstream{ argv[1] };
-    stream.exceptions( std::ifstream::failbit );
+    auto stream = std::ifstream{ argv[1], std::ifstream::in | std::ifstream::binary };
+    stream.exceptions( std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit );
     auto interface = score::binary_io::create_input_interface( stream );
     auto relocations = c_res::tras::pc_w::load_relocation_table( *interface );
     auto reloc_istream = c_res::reloc_istream{ *interface, relocations, sizeof( std::uint32_t ) };
-    auto material = c_ren::tras::pc_w::load_material( reloc_istream );
-    dump_material( *material );
+    try
+    {
+        auto material = c_ren::tras::pc_w::load_material( reloc_istream );
+        dump_material( *material );
+    }
+    catch( const std::exception& ex )
+    {
+        std::printf( "An error was thrown while loading the material:\n" );
+        std::printf( "  %s\n", typeid(ex).name() );
+        std::printf( "  what(): %s\n", ex.what() );
+        std::printf( "Here is a dump of all subsections in the file:\n" );
+        dump_subsections( reloc_istream.get_subsections() );
+    }
+    catch( ... )
+    {
+        std::printf( "An unknown error was thrown while loading the material.\n" );
+        std::printf( "Here is a dump of all subsections in the file:\n" );
+        dump_subsections( reloc_istream.get_subsections() );
+    }
 }
