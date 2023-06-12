@@ -3,6 +3,7 @@
 #include "rsrc_relocation.h"
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <exception>
 #include <optional>
 #include <score/binary_io/binary_io.h>
@@ -10,6 +11,13 @@
 
 namespace cdc_lib::resource
 {
+    struct reloc_stream_subsection_info
+    {
+        std::string name{};
+        std::size_t start_offset{0};
+        std::size_t bytes_read{0};
+    };
+
     class reloc_istream :
           public score::binary_io::input_interface
     {
@@ -64,6 +72,8 @@ namespace cdc_lib::resource
         }
 
         void rebase() { top_level_scope.offset = underlying_interface.tell(); }
+        [[nodiscard]] std::span< reloc_stream_subsection_info > get_subsections() noexcept { return std::span{subsections}; }
+        [[nodiscard]] std::span< const reloc_stream_subsection_info > get_subsections() const noexcept { return std::span{subsections}; }
         scope* start_scope( std::size_t a_offset, std::string_view a_debug_name = "<unnamed>" )
         {
             auto* s = &scope_stack.emplace( a_offset, 0, std::string{ a_debug_name } );
@@ -72,20 +82,15 @@ namespace cdc_lib::resource
         }
         scope* start_scope( std::string_view a_debug_name = "<unnamed>" )
         {
-            // We've basically 'read' a relocation now;
-            // if we seek back, we expect to be past the pointer which led us to our current scope.
-            get_current_scope().bytes_read += pointer_size;
-            auto* relocation_here = get_relocation_at_cursor();
+            auto* relocation_here = try_read_relocation();
             if( !relocation_here || relocation_here->is_external() )
-            {
-                underlying_interface.seek( underlying_interface.tell() + pointer_size );
                 return nullptr;
-            }
             return start_scope( relocation_here->dest_ptr_offset + top_level_scope.offset, a_debug_name );
         }
         void end_scope()
         {
             assert( !scope_stack.empty() && "Relocation scope stack underflow!" );
+            save_subsection( scope_stack.top() );
             scope_stack.pop();
             update_scope();
         }
@@ -123,6 +128,10 @@ namespace cdc_lib::resource
             return reloc;
         }
     private:
+        void save_subsection( const scope& a_scope )
+        {
+            subsections.push_back( {a_scope.debug_name, a_scope.offset, a_scope.bytes_read} );
+        }
         [[nodiscard]] scope& get_current_scope()
         {
             return scope_stack.empty() ? top_level_scope : scope_stack.top();
@@ -133,6 +142,7 @@ namespace cdc_lib::resource
         }
 
         std::span< cooked_relocation > relocations;
+        std::vector< reloc_stream_subsection_info > subsections{};
         std::stack< scope > scope_stack;
         scope& top_level_scope;
         input_interface& underlying_interface;
