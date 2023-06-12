@@ -217,9 +217,9 @@ namespace cdc_lib::render::tras::pc_w
                 read( a_istream, a_list.instance_texture_count );
                 read( a_istream, a_list.material_texture_count );
                 read( a_istream, a_list.first_instance_texture );
-                if( !texture_count )
-                    return;
                 auto te_scope = resource::reloc_istream_scope{a_istream, "mat.texture_entry"};
+                if( !te_scope )
+                    return;
                 for( std::uint32_t i = 0; i < texture_count; i++ )
                 {
                     auto& te = a_list.textures.emplace_back();
