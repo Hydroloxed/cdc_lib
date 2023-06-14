@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cxxopts.hpp>
+#include <fmt/core.h>
 #include <fstream>
 #include <score/binary_io/binary_io.h>
 
@@ -16,14 +17,14 @@ int main( int argc, char** argv )
     auto result = options.parse( argc, argv );
     if( argc < 2 )
     {
-        std::fprintf( stderr, "%s\n", options.help().c_str() );
+        fmt::print( stderr, "{}\n", options.help() );
         return EXIT_FAILURE;
     }
     const auto filename = result["file"].as< std::string >();
     auto stream = std::ifstream{filename};
     if( !stream.good() )
     {
-        std::fprintf( stderr, "Could not open file '%s'\n", filename.c_str() );
+        fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
         return EXIT_FAILURE;
     }
     auto i_interface = score::binary_io::create_input_interface( stream );
@@ -32,23 +33,18 @@ int main( int argc, char** argv )
     {
         if( !shader.get() )
         {
-            std::printf( "%d: <no shader>\n", i );
+            fmt::print( "{:2}: <no shader>\n", i );
             i++;
             continue;
         }
-        char buf[256]{};
-        std::snprintf( buf, 256, "%016" PRIx64 ".shad", shader->id.lo );
         if( result["dump-files"].as< bool >() )
         {
-            auto file = std::fopen( buf, "wb" );
-            std::fwrite( shader->data.data(), shader->data.size(), 1, file );
-            std::fclose( file );
+            const auto filename = fmt::format( "{:16x}.shad", shader->id.lo );
+            auto file = std::ofstream{filename};
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+            file.write( reinterpret_cast< char* >( shader->data.data() ), static_cast< std::streamsize >( shader->data.size() ) );
         }
-        std::printf( "%d: %016" PRIx64 " %08" PRIx32 " (%u bytes)\n",
-                     i,
-                     shader->id.lo,
-                     shader->id.hi,
-                     shader->id.size );
+        fmt::print( "{:2}: {:016x} {:08x} (size: {} bytes)\n", i, shader->id.lo, shader->id.hi, shader->id.size );
         i++;
     }
 }
