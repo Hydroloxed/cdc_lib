@@ -194,7 +194,7 @@ namespace cdc_lib::render::tras::pc_w
         std::uint32_t blend_factor{0};
         fog_type fog_type_{fog_type::none};
         fade_mode fade_mode_{fade_mode::off};
-        struct
+        struct flags
         {
             bool highlight : 1;
             bool alpha_highlight : 1;
@@ -208,7 +208,7 @@ namespace cdc_lib::render::tras::pc_w
             bool draw_back_face_only : 1;
             bool pre_translucent_render : 1;
             bool tessellation : 1;
-        } flags;
+        } flags_;
         node_flags combined_node_flags;
         std::uint32_t debug_color;
         blend_mode alpha_bloom_blend_mode;
