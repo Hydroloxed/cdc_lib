@@ -1,0 +1,27 @@
+Checks: >
+    bugprone-*,
+    -bugprone-easily-swappable-parameters,
+    -bugprone-unchecked-optional-access,
+    cert-*,
+    clang-analyzer-*,
+    cppcoreguidelines-*,
+    -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+    concurrency-*,
+    hicpp-*,
+    -hicpp-braces-around-statements,
+    -hicpp-no-array-decay,
+    -hicpp-uppercase-literal-suffix,
+    llvm-include-order,
+    misc-*,
+    modernize-*,
+    -modernize-use-trailing-return-type,
+    performance-*,
+    portability-*,
+    readability-*,
+    -readability-braces-around-statements,
+    -readability-identifier-length,
+    -readability-uppercase-literal-suffix
+CheckOptions:
+    misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: 'true'
+    readability-implicit-bool-conversion.AllowIntegerConditions: 'true'
+    readability-implicit-bool-conversion.AllowPointerConditions: 'true'
