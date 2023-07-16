@@ -7,8 +7,6 @@ option( CDC_LIB_BUILD_TOOLS "Build Tools" ON )
 
 add_library( cdc_lib INTERFACE )
 
-add_subdirectory( ext/score )
-
 add_subdirectory( src/cdc_lib/core )
 add_subdirectory( src/cdc_lib/render )
 add_subdirectory( src/cdc_lib/resource )
