@@ -1,3 +1,4 @@
+#include "cdc_lib/file/archive_fs.h"
 #include <cdc_lib/file/tras/pc_w/tras_pc_w_tiger.h>
 #include <cstdio>
 #include <cstdlib>
@@ -5,6 +6,26 @@
 #include <fmt/core.h>
 #include <fstream>
 
+std::string guess_record_type( const cdc_lib::file::archive& a_archive, const cdc_lib::file::archive_record& a_record )
+{
+    const auto data = cdc_lib::file::tras::pc_w::read_record( a_archive, a_record );
+    if( data.empty() )
+        return "empty file";
+    if( data[0] == '\x16' )
+        return "drm";
+    constexpr auto k_cine_magic_pos = 0x2010;
+    if( data.size() >= (k_cine_magic_pos + sizeof( std::uint32_t )) &&
+        data[k_cine_magic_pos] == 'E' &&
+        data[k_cine_magic_pos + 1] == 'N' &&
+        data[k_cine_magic_pos + 2] == 'I' &&
+        data[k_cine_magic_pos + 3] == 'C' )
+        return "cine";
+    if( data.size() >= sizeof( std::uint32_t ) &&
+        data[0] == '\x44' &&
+        data[1] == '\xAC' )
+        return "mul";
+    return "unknown";
+}
 
 int main( int argc, char** argv )
 {
@@ -36,7 +57,13 @@ int main( int argc, char** argv )
     fmt::print( " config: {}\n", archive.config_name );
     for( const auto& record : archive.records )
     {
-        fmt::print( "record {:08x}, spec {:08x}, {:8} bytes, at {:08x}\n", record.name_hash, record.spec_mask, record.size, record.offset );
+        const auto type = guess_record_type( archive, record );
+        fmt::print( "record {:08x}, spec {:08x}, {:8} bytes, at {:08x}, type {}\n",
+                    record.name_hash,
+                    record.spec_mask,
+                    record.size,
+                    record.offset,
+                    type );
     }
     return EXIT_SUCCESS;
 }

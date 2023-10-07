@@ -17,4 +17,4 @@ target_sources( cdc_lib_file PRIVATE
 
 target_compile_features( cdc_lib_file PUBLIC cxx_std_20 )
 target_include_directories( cdc_lib_file PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ )
-target_link_libraries( cdc_lib_file PRIVATE cdc_lib_core )
+target_link_libraries( cdc_lib_file PRIVATE cdc_lib_core fmt )
