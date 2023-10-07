@@ -31,7 +31,10 @@ int main( int argc, char** argv )
 {
     auto options = cxxopts::Options{"cdc_lib_archive_dump", "Dump target archive"};
     options.add_options()
-        ( "file", "The archive to dump", cxxopts::value< std::string >() );
+        ( "file", "The archive to dump", cxxopts::value< std::string >() )
+        ( "s,sort-by",
+          "Sort by this field (valid: name_hash, offset, spec_mask, size)",
+          cxxopts::value< std::string >()->default_value( "name_hash" ) );
     options.parse_positional( {"file"} );
     options.positional_help( "<file>" );
     auto result = options.parse( argc, argv );
@@ -55,7 +58,22 @@ int main( int argc, char** argv )
     fmt::print( " dlc: {}\n", archive.dlc_index );
     fmt::print( " num records: {}\n", archive.records.size() );
     fmt::print( " config: {}\n", archive.config_name );
-    for( const auto& record : archive.records )
+    std::vector records = archive.records;
+    std::ranges::sort(  records,
+                        [&result]( const auto& a, const auto& b ) -> bool
+                        {
+                            const auto sort_by = result["sort-by"].as< std::string >();
+                            if( sort_by == "name_hash" )
+                                return a.name_hash < b.name_hash;
+                            if( sort_by == "offset" )
+                                return a.offset < b.offset;
+                            if( sort_by == "spec_mask" )
+                                return a.spec_mask < b.spec_mask;
+                            if( sort_by == "size" )
+                                return a.size < b.size;
+                            return false;
+                        } );
+    for( const auto& record : records )
     {
         const auto type = guess_record_type( archive, record );
         fmt::print( "record {:08x}, spec {:08x}, {:8} bytes, at {:08x}, type {}\n",
