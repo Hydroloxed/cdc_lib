@@ -11,6 +11,10 @@ namespace cdc_lib::resource::tras::pc_w
         [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_id_offset_shift = 0;
         constexpr std::uint32_t k_resource_pointer_resource_type_shift = 25;
         [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_type_mask = ((1u << 7u) - 1u) << k_resource_pointer_resource_type_shift;
+
+        // There's technically no maximum size for the relocation table, but
+        // this is the largest possible value that can be stored in SectionInfo.
+        constexpr std::uint32_t k_max_reloc_table_size = (1u << 24u) - 1u; // INT24_MAX
     }
 
     [[nodiscard]] std::vector< cooked_relocation > load_relocation_table( score::binary_io::input_interface& a_input_interface )
@@ -26,6 +30,9 @@ namespace cdc_lib::resource::tras::pc_w
                                             resource_id_count * 4 +
                                             resource_id_16_count * 8 +
                                             resource_pointer_count * 4;
+        if( relocation_table_size > k_max_reloc_table_size )
+            throw relocation_table_invalid{"Reloc table WAAAY to large (>INT24_MAX)."
+                                           "Verify that you are using the correct endian and platform."};
         const auto data_offset = a_input_interface.tell() + relocation_table_size;
 
         std::vector< cooked_relocation > relocations;
