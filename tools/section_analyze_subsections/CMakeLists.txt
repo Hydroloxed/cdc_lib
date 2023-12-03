@@ -1,0 +1,3 @@
+add_executable( cdc_lib_section_analyze_subsections )
+target_sources( cdc_lib_section_analyze_subsections PRIVATE section_analyze_subsections.cpp )
+target_link_libraries( cdc_lib_section_analyze_subsections PUBLIC cdc_lib cxxopts fmt::fmt )
