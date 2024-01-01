@@ -90,7 +90,7 @@ void dump_material( c_ren::tras::pc_w::material_data& a_material )
                  a_material.id,
                  a_material.color_write_mask,
                  a_material.blend_factor );
-    fmt::print( "fog type '{}' fade mode '{}'\n", 
+    fmt::print( "fog type '{}' fade mode '{}'\n",
                 md::fog_type_debugstr.lookup_or( a_material.fog_type_, "invalid" ),
                 md::fade_mode_debugstr.lookup_or( a_material.fade_mode_, "invalid" ) );
     fmt::print( "dbgclr '{:08x}'\n", a_material.debug_color );
