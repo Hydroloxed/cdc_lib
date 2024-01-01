@@ -19,20 +19,20 @@ namespace cdc_lib::resource::tras::pc_w
 
     [[nodiscard]] std::vector< cooked_relocation > load_relocation_table( score::binary_io::input_interface& a_input_interface )
     {
-        const auto intern_ptr_count       = read< std::uint32_t >( a_input_interface );
-        const auto extern_ptr_count       = read< std::uint32_t >( a_input_interface );
-        const auto resource_id_count      = read< std::uint32_t >( a_input_interface );
-        const auto resource_id_16_count   = read< std::uint32_t >( a_input_interface );
-        const auto resource_pointer_count = read< std::uint32_t >( a_input_interface );
-        // We've already read the header, so we don't need to add the size of it here.
-        const auto relocation_table_size  = intern_ptr_count * 8 +
-                                            extern_ptr_count * 8 +
-                                            resource_id_count * 4 +
-                                            resource_id_16_count * 8 +
-                                            resource_pointer_count * 4;
+        const auto intern_ptr_count              = read< std::uint32_t >( a_input_interface );
+        const auto extern_ptr_count              = read< std::uint32_t >( a_input_interface );
+        const auto resource_id_count             = read< std::uint32_t >( a_input_interface );
+        const auto resource_id_16_count          = read< std::uint32_t >( a_input_interface );
+        const auto resource_pointer_count        = read< std::uint32_t >( a_input_interface );
+        const std::size_t relocation_table_size  = intern_ptr_count * 8 +
+                                                   extern_ptr_count * 8 +
+                                                   resource_id_count * 4 +
+                                                   resource_id_16_count * 8 +
+                                                   resource_pointer_count * 4;
         if( relocation_table_size > k_max_reloc_table_size )
             throw relocation_table_invalid{"Reloc table WAAAY to large (>INT24_MAX)."
                                            "Verify that you are using the correct endian and platform."};
+        // We've already read the header, so we don't need to add the size of it here.
         const auto data_offset = a_input_interface.tell() + relocation_table_size;
 
         std::vector< cooked_relocation > relocations;
@@ -57,7 +57,6 @@ namespace cdc_lib::resource::tras::pc_w
         {
             const auto packed = read< std::uint32_t >( a_input_interface );
             const auto resource_guid_offset = (packed & k_resource_pointer_resource_id_offset_mask) * 4;
-            // This is unnecessary, we get this from the resource guid.
             const auto resource_type = (packed & k_resource_pointer_resource_type_mask) >> k_resource_pointer_resource_type_shift;
             const auto resource_id = [&a_input_interface, data_offset, resource_guid_offset]()
             {
