@@ -44,8 +44,9 @@ namespace cdc_lib::resource::tras::pc_w
         std::vector< std::string > read_string_list( score::binary_io::input_interface& a_input_interface,
                                                      std::size_t a_byte_length )
         {
+            const auto start = a_input_interface.tell();
             std::vector< std::string > strings;
-            for( std::size_t i = 0; i < a_byte_length; i += strings.back().size() + 1 )
+            while( a_input_interface.tell() - start < a_byte_length )
                 read_c_string( a_input_interface, strings.emplace_back() );
             return strings;
         }
@@ -91,8 +92,15 @@ namespace cdc_lib::resource::tras::pc_w
 
         object->primary_section = primary_section == k_no_primary_section
                                 ? nullptr : &object->sections[ primary_section ];
-        object->includes = read_string_list( a_input_interface, include_length );
-        object->objects_that_depend_on = read_string_list( a_input_interface, depends_length );
+        auto strings = read_string_list( a_input_interface, include_length + depends_length );
+        for( std::size_t pos = 0; const auto& string : strings )
+        {
+            if( pos < include_length )
+                object->includes.emplace_back( string );
+            else
+                object->objects_that_depend_on.emplace_back( string );
+            pos += string.size() + 1;
+        }
 
         for( auto& section : object->sections )
         {
