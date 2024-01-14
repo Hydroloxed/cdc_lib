@@ -1,16 +1,16 @@
 #include "tras_pc_w_relocation.h"
 #include "tras_pc_w_resource.h"
 #include <cassert>
+#include <cdc_lib/resource/rsrc_relocation.h>
 #include <cstdint>
+#include <score/score_bit.h>
 
 namespace cdc_lib::resource::tras::pc_w
 {
     namespace
     {
-        constexpr std::uint32_t k_resource_pointer_resource_id_offset_mask = (1u << 25u) - 1u;
-        [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_id_offset_shift = 0;
-        constexpr std::uint32_t k_resource_pointer_resource_type_shift = 25;
-        [[maybe_unused]] constexpr std::uint32_t k_resource_pointer_resource_type_mask = ((1u << 7u) - 1u) << k_resource_pointer_resource_type_shift;
+        constexpr score::bit_range k_resource_guid_id_range   = {0u,  25u};
+        constexpr score::bit_range k_resource_guid_type_range = {24u, 8u};
 
         // There's technically no maximum size for the relocation table, but
         // this is the largest possible value that can be stored in SectionInfo.
@@ -24,11 +24,11 @@ namespace cdc_lib::resource::tras::pc_w
         const auto resource_id_count             = read< std::uint32_t >( a_input_interface );
         const auto resource_id_16_count          = read< std::uint32_t >( a_input_interface );
         const auto resource_pointer_count        = read< std::uint32_t >( a_input_interface );
-        const std::size_t relocation_table_size  = intern_ptr_count * 8 +
-                                                   extern_ptr_count * 8 +
-                                                   resource_id_count * 4 +
-                                                   resource_id_16_count * 8 +
-                                                   resource_pointer_count * 4;
+        const std::size_t relocation_table_size  = intern_ptr_count * 8u +
+                                                   extern_ptr_count * 8u +
+                                                   resource_id_count * 4u +
+                                                   resource_id_16_count * 8u +
+                                                   resource_pointer_count * 4u;
         if( relocation_table_size > k_max_reloc_table_size )
             throw relocation_table_invalid{"Reloc table WAAAY to large (>INT24_MAX)."
                                            "Verify that you are using the correct endian and platform."};
@@ -53,36 +53,97 @@ namespace cdc_lib::resource::tras::pc_w
                 .resource = std::nullopt
             };
         };
-        auto read_resource_pointer = [&a_input_interface, data_offset]()
+        auto read_extern_ptr = [&a_input_interface, data_offset]()
         {
-            const auto packed = read< std::uint32_t >( a_input_interface );
-            const auto resource_guid_offset = (packed & k_resource_pointer_resource_id_offset_mask) * 4;
-            const auto resource_type = (packed & k_resource_pointer_resource_type_mask) >> k_resource_pointer_resource_type_shift;
-            const auto resource_id = [&a_input_interface, data_offset, resource_guid_offset]()
+            constexpr score::bit_range k_extern_ptr_section_index_range [[maybe_unused]] = {0u,  16u};
+            constexpr score::bit_range k_extern_ptr_pointer_offset_range                 = {16u, 23u};
+            constexpr score::bit_range k_extern_ptr_referenced_offset_range              = {39u, 25u};
+
+            const auto packed = read< std::uint64_t >( a_input_interface );
+            const auto pointer_offset = score::get_bits( packed, k_extern_ptr_pointer_offset_range ) * 4;
+            const auto packed_resource_guid = [&a_input_interface, pointer_offset, data_offset]()
             {
                 const auto old_stream_position = a_input_interface.tell();
-                a_input_interface.seek( data_offset + resource_guid_offset );
+                a_input_interface.seek( data_offset + pointer_offset );
                 const auto read_val = read< std::uint32_t >( a_input_interface );
                 a_input_interface.seek( old_stream_position );
                 return read_val;
             }();
+            const auto resource_id = score::get_bits( packed_resource_guid, k_resource_guid_id_range );
+            const auto resource_type = score::get_bits( packed_resource_guid, k_resource_guid_type_range );
             return cooked_relocation
             {
-                .src_ptr_offset = resource_guid_offset,
+                .src_ptr_offset = static_cast< unsigned >( pointer_offset ),
+                .dest_ptr_offset = static_cast< unsigned >( score::get_bits( packed, k_extern_ptr_referenced_offset_range ) ),
+                .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()}
+            };
+        };
+        auto read_resource_id_16 = [&a_input_interface, data_offset]()
+        {
+            constexpr score::bit_range k_resource_type_range     = {0u, 16u};
+            // only half of the resource id is stored here; the other half is at *offset*
+            // crystal is definitely messing with us here...
+            constexpr score::bit_range k_resource_id_high_range = {16u, 16u};
+            const auto packed = read< std::uint32_t >( a_input_interface );
+            const auto resource_type = score::get_bits( packed, k_resource_type_range );
+            const auto resource_id_high = score::get_bits( packed, k_resource_id_high_range );
+            const auto resource_id_low_offset = read< std::uint32_t >( a_input_interface );
+            const auto resource_id_low = [&a_input_interface, data_offset, resource_id_low_offset]()
+            {
+                const auto old_stream_position = a_input_interface.tell();
+                a_input_interface.seek( data_offset + resource_id_low_offset );
+                const auto read_val = read< std::uint32_t >( a_input_interface );
+                a_input_interface.seek( old_stream_position );
+                return read_val;
+            }();
+            const auto resource_id = (resource_id_high << 16u) | resource_id_low;
+            return cooked_relocation
+            {
+                .src_ptr_offset = static_cast< unsigned >( resource_id_low_offset ),
+                .dest_ptr_offset = static_cast< unsigned >( resource_id_high ),
+                .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()}
+            };
+        };
+        auto read_resource_pointer = [&a_input_interface, data_offset]( bool is_resource_id )
+        {
+            constexpr score::bit_range k_resource_id_range   = {0u, 25u};
+            constexpr score::bit_range k_resource_type_range = {25u, 7u};
+            // for whatever reason, resource pointer ids are always 31 bits
+            // the purpose of the remaining bit is unknown
+            constexpr std::uint32_t k_resource_id_mask = 0x7fffffffu;
+            constexpr std::uint32_t k_resource_id_unknown_bit_mask = 0x80000000u;
+            const auto packed = read< std::uint32_t >( a_input_interface );
+            const auto resource_id_offset = score::get_bits( packed, k_resource_id_range ) * 4u;
+            const auto resource_type = score::get_bits( packed, k_resource_type_range );
+            const auto resource_id = [&a_input_interface, data_offset, resource_id_offset, is_resource_id]()
+            {
+                const auto old_stream_position = a_input_interface.tell();
+                a_input_interface.seek( data_offset + resource_id_offset );
+                const auto read_val = read< std::uint32_t >( a_input_interface );
+                a_input_interface.seek( old_stream_position );
+                assert( (read_val & k_resource_id_unknown_bit_mask) == 0 );
+                return is_resource_id ? read_val & k_resource_id_mask : read_val;
+            }();
+            return cooked_relocation
+            {
+                .src_ptr_offset = resource_id_offset,
                 .dest_ptr_offset = 0,
                 .resource = resource_ref{ resource_ref_id{ resource_id, static_cast< std::uint8_t >( resource_type ) }.pack() }
             };
         };
         for( std::uint32_t i = 0; i < intern_ptr_count; i++ )
             relocations.push_back( read_intern_ptr() );
-        // TODO: extern_ptrs
-        assert( extern_ptr_count == 0 );
-        // TODO: resource_id_ptrs
-        assert( resource_id_count == 0 );
-        // TODO: resource_id_16_ptrs
-        assert( resource_id_16_count == 0 );
+        for( std::uint32_t i = 0; i < extern_ptr_count; i++ )
+            relocations.push_back( read_extern_ptr() );
+        // identical to resource_id relocations, except for one tiny detail
+        // TODO: investigate how these are chosen when building resources
+        for( std::uint32_t i = 0; i < resource_id_count; i++ )
+            relocations.push_back( read_resource_pointer( true ) );
+        for( std::uint32_t i = 0; i < resource_id_16_count; i++ )
+            relocations.push_back( read_resource_id_16() );
         for( std::uint32_t i = 0; i < resource_pointer_count; i++ )
-            relocations.push_back( read_resource_pointer() );
+            relocations.push_back( read_resource_pointer( false ) );
+        assert( a_input_interface.tell() == data_offset );
         return relocations;
     }
 }

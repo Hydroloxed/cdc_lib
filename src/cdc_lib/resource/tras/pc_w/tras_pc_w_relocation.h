@@ -11,7 +11,7 @@ namespace cdc_lib::resource::tras::pc_w
     {
     public:
         explicit relocation_table_invalid( const std::string& a_message ) :
-            std::runtime_error{ a_message }
+            std::runtime_error{a_message}
         {}
     };
     [[nodiscard]] std::vector< cooked_relocation > load_relocation_table( score::binary_io::input_interface& input_interface );
