@@ -22,6 +22,7 @@ Checks: >
     performance-*,
     portability-*,
     readability-*,
+    readability-identifier-naming,
     -readability-braces-around-statements,
     -readability-identifier-length,
     -readability-uppercase-literal-suffix
@@ -29,3 +30,20 @@ CheckOptions:
     misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: 'true'
     readability-implicit-bool-conversion.AllowIntegerConditions: 'true'
     readability-implicit-bool-conversion.AllowPointerConditions: 'true'
+    readability-identifier-naming.ClassCase: 'lower_case'
+    readability-identifier-naming.ConstantCase: 'lower_case'
+    readability-identifier-naming.EnumCase: 'lower_case'
+    readability-identifier-naming.FunctionCase: 'lower_case'
+    readability-identifier-naming.GlobalConstantCase: 'lower_case'
+    readability-identifier-naming.GlobalConstantPrefix: 'k_'
+    readability-identifier-naming.LocalCase: 'lower_case'
+    readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
+    readability-identifier-naming.MemberCase: 'lower_case'
+    readability-identifier-naming.NamespaceCase: 'lower_case'
+    readability-identifier-naming.ParameterCase: 'lower_case'
+    readability-identifier-naming.ParameterPrefix: 'a_'
+    readability-identifier-naming.StructCase: 'lower_case'
+    readability-identifier-naming.TypeTemplateParameterCase: 'lower_case'
+    readability-identifier-naming.TypeTemplateParameterSuffix: '_type'
+    readability-identifier-naming.TypeAliasCase: 'lower_case'
+    readability-identifier-naming.VariableCase: 'lower_case'
