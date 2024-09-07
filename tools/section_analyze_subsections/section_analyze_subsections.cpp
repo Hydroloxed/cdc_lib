@@ -5,14 +5,55 @@
 #include <fstream>
 #include <iterator>
 #include <map>
-#include <numeric>
 #include <score/binary_io/binary_io.h>
+#include <score/binary_io/binio_strings.h>
+
+std::multimap< std::size_t, std::string > load_types_map( std::ifstream&& a_stream )
+{
+    std::multimap< std::size_t, std::string > result;
+    std::string line;
+    while( std::getline( a_stream, line ) )
+    {
+        if( line.empty() )
+            throw std::runtime_error{"Empty line in types file."};
+        auto size = std::stoull( line.substr( 0, line.find( ' ' ) ) );
+        auto name = line.substr( line.find( ' ' ) + 1 );
+        result.emplace( size, name );
+    }
+    return result;
+}
+
+std::optional< std::string > get_string_at( score::binary_io::input_interface& a_input_interface, std::size_t a_offset, std::size_t a_length )
+{
+    auto is_valid_string = []( std::string_view a_string )
+    {
+        return !a_string.empty() &&
+                std::ranges::all_of( a_string.substr( 0, a_string.size() ), 
+                                    []( char a_c ) { return std::isprint( a_c ) || std::isspace( a_c ); } );
+    };
+    // some strings are terminated with MULTIPLE null bytes
+    // if the next struct needs to be aligned
+    auto trim_null_bytes = []( std::string_view a_string )
+    {
+        auto pos = a_string.find_last_not_of( '\0' );
+        return a_string.substr( 0, pos + 1 );
+    };
+    std::string str;
+    str.resize( a_length );
+    a_input_interface.seek( a_offset );
+    score::binary_io::read_fixed_string( a_input_interface, str, a_length );
+    if( str.ends_with( '\0' ) && is_valid_string( trim_null_bytes( str ) ) )
+        return str.substr( 0, str.size() - 1 );
+    return {};
+}
 
 int main( int argc, char** argv )
 {
     auto options = cxxopts::Options{"section_analyze_subsections", "Try to guess the subsections present in a file."};
     options.add_options()
-        ( "file", "The file to analyze", cxxopts::value< std::string >() );
+        ( "file", "The file to analyze", cxxopts::value< std::string >() )
+        ( "types", "The types file (defaults to types.txt)", cxxopts::value< std::string >()->default_value( "types.txt" ) )
+        ( "t,types-to-show", "The number of types to show", cxxopts::value< std::size_t >()->default_value( "1" ) );
     options.parse_positional( {"file"} );
     options.positional_help( "<file>" );
     auto result = options.parse( argc, argv );
@@ -21,6 +62,18 @@ int main( int argc, char** argv )
         fmt::print( stderr, "{}\n", options.help() );
         return EXIT_FAILURE;
     }
+    const auto types_file = result["types"].as< std::string >();
+    // does the file exist
+    auto types_map = [&types_file]
+    {
+        if( !std::filesystem::exists( types_file ) )
+        {
+            fmt::print( stderr, "Could not open '{}'; type information will not be available.\n", types_file );
+            return std::multimap< std::size_t, std::string >{};
+        }
+        return load_types_map( std::ifstream{types_file} );
+    }();
+    const auto num_types_to_show = result["types-to-show"].as< std::size_t >();
     const auto filename = result["file"].as< std::string >();
     auto stream = std::ifstream{filename};
     if( !stream.good() )
@@ -52,6 +105,41 @@ int main( int argc, char** argv )
     // remove imaginary subsection
     subsections.erase( std::prev( subsections.end() ) );
     for( const auto& subsection : subsections )
-        fmt::print( "sub {:6x} size {:4x}\n", subsection.first, subsection.second );
+    {
+        const auto num_matches = types_map.count( subsection.second );
+        std::string type_suffix{};
+        constexpr std::size_t k_min_size_to_show = 0x20;
+        bool was_string = false;
+        if( auto str = get_string_at( *i_interface, subsection.first + data_start, subsection.second ) )
+        {
+            type_suffix = fmt::format( " - probably string '{}'", *str );
+            was_string = true;
+        }
+        else if( subsection.second > k_min_size_to_show && num_types_to_show > 0 )
+        {
+            if( num_matches == 0 )
+                type_suffix = " - no matching types found";
+            else if( num_matches == 1 )
+                type_suffix = fmt::format( " - probably {}", types_map.find( subsection.second )->second );
+            else if( num_matches > 1 )
+                type_suffix = fmt::format( " - probably one of {} types", num_matches );
+        }
+        fmt::print( "sub {:6x} size {:4x}{}\n", subsection.first, subsection.second, type_suffix );
+        if( subsection.second > k_min_size_to_show && num_matches > 1 && num_types_to_show > 1 && !was_string )
+        {
+            std::size_t num_shown = 0;
+            auto range = types_map.equal_range( subsection.second );
+            for( auto i = range.first; i != range.second && num_shown < num_types_to_show; ++i, ++num_shown )
+                fmt::print( "  {}\n", i->second );
+            if( std::distance( range.first, range.second ) > num_types_to_show )
+                fmt::print( "  ...\n" );
+        }
+    }
+    if( num_types_to_show > 0 )
+    {
+        fmt::print( "Up to {} types are shown, use --types-to-show 0 to disable\n", num_types_to_show );
+        fmt::print( "Types shown are guesses based on the size of the subsection.\n" );
+        fmt::print( "They are not guaranteed to be correct.\n" );
+    }
     return EXIT_SUCCESS;
 }
