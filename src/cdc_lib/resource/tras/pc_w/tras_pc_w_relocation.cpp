@@ -104,25 +104,29 @@ namespace cdc_lib::resource::tras::pc_w
                 .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()}
             };
         };
-        auto read_resource_pointer = [&a_input_interface, data_offset]( bool is_resource_id )
+        auto read_resource_pointer = [&a_input_interface, data_offset]( [[maybe_unused]] bool a_is_resource_id )
         {
             constexpr score::bit_range k_resource_id_range   = {0u, 25u};
             constexpr score::bit_range k_resource_type_range = {25u, 7u};
-            // for whatever reason, resource pointer ids are always 31 bits
-            // the purpose of the remaining bit is unknown
+            // resource pointer ids are always 31 bits
+            // the purpose of the remaining bit is unknown,
+            // but i think it's used to determine if the section type pointed to
+            // is unique or not (i.e. colmesh, or generic)
+            // because the CMeshResource pointer in UnitData always seems to
+            // have this flag set.
             constexpr std::uint32_t k_resource_id_mask = 0x7fffffffu;
-            constexpr std::uint32_t k_resource_id_unknown_bit_mask = 0x80000000u;
+            [[maybe_unused]] constexpr std::uint32_t k_resource_id_unknown_bit_mask = 0x80000000u;
             const auto packed = read< std::uint32_t >( a_input_interface );
             const auto resource_id_offset = score::get_bits( packed, k_resource_id_range ) * 4u;
             const auto resource_type = score::get_bits( packed, k_resource_type_range );
-            const auto resource_id = [&a_input_interface, data_offset, resource_id_offset, is_resource_id]()
+            const auto resource_id = [&a_input_interface, data_offset, resource_id_offset]()
             {
                 const auto old_stream_position = a_input_interface.tell();
                 a_input_interface.seek( data_offset + resource_id_offset );
                 const auto read_val = read< std::uint32_t >( a_input_interface );
                 a_input_interface.seek( old_stream_position );
-                assert( (read_val & k_resource_id_unknown_bit_mask) == 0 );
-                return is_resource_id ? read_val & k_resource_id_mask : read_val;
+                // assert( (read_val & k_resource_id_unknown_bit_mask) == 0 ); - TODO, can happen, needs investigation
+                return read_val & k_resource_id_mask;
             }();
             return cooked_relocation
             {
