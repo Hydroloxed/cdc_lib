@@ -1,6 +1,5 @@
 #ifndef CDC_LIB_RESOURCE_RSRC_RESOLVE_OBJECT_H
 #define CDC_LIB_RESOURCE_RSRC_RESOLVE_OBJECT_H
-#include <any>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -33,6 +32,13 @@ namespace cdc_lib::resource
 
     struct cooked_resolve_section
     {
+        struct extra_info
+        {
+            std::uint64_t packed_offset{0};
+            std::size_t compressed_size{0};
+            std::uint32_t decompressed_offset{0};
+        };
+
         std::size_t size{0};
         std::size_t relocation_table_size{0};
         cooked_resolve_section_type type{cooked_resolve_section_type::unknown};
@@ -40,8 +46,8 @@ namespace cdc_lib::resource
         std::uint32_t id{0};
         bool has_debug_info{false};
         std::uint8_t resource_type{0};
+        extra_info extra_data{};
         // TODO: specialization masks
-        std::any extra_data{};
 
         [[nodiscard]] cooked_resource_guid guid() const { return {type, id}; }
     };

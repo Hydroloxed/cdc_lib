@@ -97,8 +97,7 @@ namespace operation_create
                 section_ref_data.section_type = a_section.type;
                 section_ref_data.resource_type = a_section.resource_type;
                 section_ref_data.id = a_section.id;
-                section_ref_data.offset =
-                    std::any_cast< cdc_lib::resource::tras::pc_w::cooked_resolve_section_extra_data >( a_section.extra_data ).packed_offset;
+                section_ref_data.offset = a_section.extra_data.packed_offset;
                 section_ref_data.size = a_section.size;
                 section_ref_data.relocation_table_size = a_section.relocation_table_size;
                 a_global_ref_data.sections.insert(

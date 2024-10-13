@@ -6,15 +6,8 @@
 
 namespace cdc_lib::resource::tras::pc_w
 {
-    struct cooked_resolve_section_extra_data
-    {
-        std::uint32_t unique_id{0};
-        std::uint32_t packed_offset{0};
-        std::uint32_t compressed_size{0};
-        std::uint32_t decompressed_offset{0};
-    };
 
-    std::unique_ptr< cooked_resolve_object > load_object( score::binary_io::input_interface& input_interface );
+    std::unique_ptr< cooked_resolve_object > load_object( score::binary_io::input_interface& a_input_interface );
 }
 
 #endif

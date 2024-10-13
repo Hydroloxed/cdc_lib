@@ -1,6 +1,6 @@
 #include "tras_pc_w_resolve_object.h"
-#include "cdc_lib/resource/rsrc_resolve_object.h"
 #include <cassert>
+#include <cdc_lib/resource/rsrc_resolve_object.h>
 #include <cstdint>
 #include <score/binary_io/binio_strings.h>
 #include <score/containers/simple_lookup_table.h>
@@ -17,11 +17,13 @@ namespace cdc_lib::resource::tras::pc_w
 
         [[maybe_unused]] constexpr std::uint32_t k_flag_section_padding = 0x1;
 
-        constexpr auto k_section_info_bit_range_has_debug_info = score::bit_range{ 0, 1 };
-        constexpr auto k_section_info_bit_range_resource_type = score::bit_range{ 1, 7 };
-        constexpr auto k_section_info_bit_range_reloc_table_size = score::bit_range{ 8, 24 };
+        constexpr auto k_section_info_bit_range_has_debug_info = score::bit_range{0, 1};
+        constexpr auto k_section_info_bit_range_resource_type = score::bit_range{1, 7};
+        constexpr auto k_section_info_bit_range_reloc_table_size = score::bit_range{8, 24};
+        constexpr auto k_section_extra_info_bit_range_unique_id_id = score::bit_range{0, 24};
+        constexpr auto k_section_extra_info_bit_range_unique_id_type = score::bit_range{24, 8};
 
-        constexpr score::simple_lookup_table< std::uint8_t, cooked_resolve_section_type, 11 > section_type_lookup =
+        constexpr score::simple_lookup_table< std::uint8_t, cooked_resolve_section_type, 11 > k_section_type_lookup =
         {
             std::pair{0, cooked_resolve_section_type::general},
             std::pair{2, cooked_resolve_section_type::animation},
@@ -38,7 +40,7 @@ namespace cdc_lib::resource::tras::pc_w
 
         void read( score::binary_io::input_interface& a_input_interface, cooked_resolve_section_type& a_section_type )
         {
-            a_section_type = section_type_lookup.lookup( read< std::uint8_t >( a_input_interface ) );
+            a_section_type = k_section_type_lookup.lookup( read< std::uint8_t >( a_input_interface ) );
         }
 
         std::vector< std::string > read_string_list( score::binary_io::input_interface& a_input_interface,
@@ -105,11 +107,19 @@ namespace cdc_lib::resource::tras::pc_w
 
         for( auto& section : object->sections )
         {
-            auto& ex = section.extra_data.emplace< cooked_resolve_section_extra_data >();
-            read( a_input_interface, ex.unique_id );
-            read( a_input_interface, ex.packed_offset );
-            read( a_input_interface, ex.compressed_size );
-            read( a_input_interface, ex.decompressed_offset );
+            const auto unique_id = read< std::uint32_t >( a_input_interface );
+            const auto unique_id_id = score::get_bits( unique_id, k_section_extra_info_bit_range_unique_id_id );
+            const auto unique_id_type = score::get_bits( unique_id, k_section_extra_info_bit_range_unique_id_type );
+            if( section.id == 0 )
+                section.id = unique_id_id;
+            else
+            {
+                assert( section.id == unique_id_id );
+                assert( section.type == k_section_type_lookup.lookup( unique_id_type ) );
+            }
+            section.extra_data.packed_offset = read< std::uint32_t >( a_input_interface );
+            section.extra_data.compressed_size = read< std::uint32_t >( a_input_interface );
+            section.extra_data.decompressed_offset = read< std::uint32_t >( a_input_interface );
         }
 
         return object;
