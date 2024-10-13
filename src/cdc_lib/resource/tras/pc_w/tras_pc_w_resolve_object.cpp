@@ -62,8 +62,9 @@ namespace cdc_lib::resource::tras::pc_w
         const auto depends_length  = read< std::uint32_t >( a_input_interface );
         const auto padding_length  = read< std::uint32_t >( a_input_interface );
         assert( padding_length == 0 ); // not yet supported
-        const auto projected_size  = read< std::uint32_t >( a_input_interface );
-        assert( projected_size == 0 ); // shouldn't happen with non-debug data
+        [[maybe_unused]] const auto projected_size  = read< std::uint32_t >( a_input_interface );
+        // assert( projected_size == 0 ); - TODO(logging): this can actually happen
+        // we should probably encourage the user to report this somewhere!
         const auto flags           = read< std::uint32_t >( a_input_interface );
         assert( flags == 0 ); // also not known to happen with non-debug data
         const auto section_count   = read< std::uint32_t >( a_input_interface );
