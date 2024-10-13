@@ -1,5 +1,6 @@
 add_subdirectory( archive_dump )
 add_subdirectory( material_dump )
+add_subdirectory( resource_refdata )
 add_subdirectory( resolve_object_dump )
 add_subdirectory( section_analyze_subsections )
 add_subdirectory( section_relocation_dump )
