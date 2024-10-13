@@ -22,22 +22,21 @@ namespace cdc_lib::file::tras::pc_w
         [[nodiscard]] std::filesystem::path get_effective_archive_path( const archive& a_archive, std::uint32_t a_offset )
         {
             const auto archive_index = score::get_bits( a_offset, k_offset_bit_range_archive_index );
-            const auto path = a_archive.archive_path;
 
             // Replace '*.000.tiger' with '*.{:03}.tiger'
-            auto filename = path.filename().string();
+            auto new_path = a_archive.archive_path.generic_string();
             constexpr auto k_extension_length = sizeof ".000.tiger";
-            const auto extension = filename.find( ".000.tiger" );
+            const auto extension = new_path.find( ".000.tiger" );
             const auto new_extension = fmt::format( ".{:03}.tiger", archive_index );
-            filename.replace( extension, k_extension_length, new_extension );
-            return path.parent_path() / filename;
+            new_path.replace( extension, k_extension_length, new_extension );
+            return new_path;
         }
     }
 
-    [[nodiscard]] archive load_archive( score::binary_io::input_interface& a_input, std::filesystem::path a_path )
+    [[nodiscard]] archive load_archive( score::binary_io::input_interface& a_input, const std::filesystem::path& a_path )
     {
         archive ret{};
-        ret.archive_path = std::move( a_path );
+        ret.archive_path = a_path;
         const auto magic = read< std::uint32_t >( a_input );
         assert( magic == k_magic );
         const auto version = read< std::uint32_t >( a_input );
