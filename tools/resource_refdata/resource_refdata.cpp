@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cdc_lib/core/core_crc32.h>
 #include <cdc_lib/file/archive_fs.h>
 #include <cdc_lib/file/tras/pc_w/tras_pc_w_tiger.h>
 #include <cdc_lib/resource/rsrc_refdata.h>
@@ -110,7 +111,8 @@ namespace operation_create
             find_or_create_section( section );
     }
 
-    cdc_lib::resource::ref_data::ref_data create_references( const cdc_lib::file::archive& a_archive )
+    cdc_lib::resource::ref_data::ref_data create_references( const cdc_lib::file::archive& a_archive,
+                                                             const std::map< std::uint32_t, std::string >& a_hash_to_path )
     {
         cdc_lib::resource::ref_data::ref_data ref_data{};
         auto is_resolve_object = []( std::string_view a_data )
@@ -133,8 +135,8 @@ namespace operation_create
                 add_object_references( ref_data, object_ref_data, *resolve_object );
                 object_ref_data.offset = record.offset;
                 object_ref_data.path_hash = record.name_hash;
-                object_ref_data.path = resolve_object->has_path() ?
-                    resolve_object->path :
+                object_ref_data.path = a_hash_to_path.contains( record.name_hash ) ?
+                    a_hash_to_path.at( record.name_hash ) :
                     fmt::format( "{:08x}", record.name_hash );
                 object_ref_data.includes = resolve_object->includes;
                 object_ref_data.objects_that_depend_on = resolve_object->objects_that_depend_on;
@@ -148,11 +150,27 @@ namespace operation_create
         return ref_data;
     }
 
+    std::map< std::uint32_t, std::string > make_hash_list( std::ifstream&& a_stream )
+    {
+        if( !a_stream.good() )
+            return {};
+        // a_stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
+        std::map< std::uint32_t, std::string > result;
+        std::string path{};
+        while( std::getline( a_stream, path ) )
+        {
+            const auto hash = cdc_lib::core::crc32( path );
+            result[hash] = path;
+        }
+        return result;
+    }
+
     int run( int a_argc, char** a_argv )
     {
         cxxopts::Options options( "resource_refdata", "Create a resource refdata" );
         options.add_options()
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
+            ( "l,filelist", "The file containing list of files in the archive", cxxopts::value< std::string >() )
             ( "t,tiger", "The tiger files to read data from", cxxopts::value< std::string >() )
             ( "o,output", "The output file", cxxopts::value< std::string >()->default_value( "refdata.bin" ) )
             ( "h,help", "Print help" );
@@ -172,9 +190,12 @@ namespace operation_create
             return EXIT_FAILURE;
         }
         stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
+        std::map< std::uint32_t, std::string > hash_to_path{};
+        if( result.count( "filelist" ) != 0 )
+            hash_to_path = make_hash_list( std::ifstream{result["filelist"].as< std::string >()} );
         auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
         auto archive = cdc_lib::file::tras::pc_w::load_archive( *input_interface, filename );
-        auto refdata = create_references( archive );
+        auto refdata = create_references( archive, hash_to_path );
         fmt::print( "Created refdata for archive \"{}\"\n", filename );
         std::ofstream output{result["output"].as< std::string >()};
         output.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
