@@ -1,4 +1,5 @@
 add_subdirectory( archive_dump )
+add_subdirectory( file_decompress )
 add_subdirectory( material_dump )
 add_subdirectory( resource_refdata )
 add_subdirectory( resolve_object_dump )

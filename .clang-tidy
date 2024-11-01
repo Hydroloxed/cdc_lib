@@ -6,7 +6,6 @@ Checks: >
     -cert-err58-cpp,
     clang-analyzer-*,
     cppcoreguidelines-*,
-    -cppcoreguidelines-avoid-c-arrays,
     -cppcoreguidelines-avoid-magic-numbers,
     -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
     concurrency-*,
@@ -25,6 +24,7 @@ Checks: >
     readability-identifier-naming,
     -readability-braces-around-statements,
     -readability-identifier-length,
+    -readability-redundant-member-init,
     -readability-uppercase-literal-suffix
 CheckOptions:
     misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: 'true'
