@@ -47,6 +47,7 @@ namespace cdc_lib::resource::ref_data
             a_object.path_hash = read< std::uint64_t >( a_input );
             score::binary_io::read_c_string( a_input, a_object.path );
             const auto includes_size = read< std::uint32_t >( a_input );
+            a_object.includes.reserve( includes_size );
             for( auto i = 0u; i < includes_size; ++i )
             {
                 std::string include{};
@@ -54,6 +55,7 @@ namespace cdc_lib::resource::ref_data
                 a_object.includes.push_back( include );
             }
             const auto depends_size = read< std::uint32_t >( a_input );
+            a_object.objects_that_depend_on.reserve( depends_size );
             for( auto i = 0u; i < depends_size; ++i )
             {
                 std::string depends{};
@@ -61,6 +63,7 @@ namespace cdc_lib::resource::ref_data
                 a_object.objects_that_depend_on.push_back( depends );
             }
             const auto references_size = read< std::uint32_t >( a_input );
+            a_object.references_sections.reserve( references_size );
             for( auto i = 0u; i < references_size; ++i )
             {
                 cooked_resource_guid guid{};
@@ -135,6 +138,10 @@ namespace cdc_lib::resource::ref_data
             read( a_input, object );
             ret.objects.push_back( object );
         }
+        // This part is really. really. slow.
+        // As in, it takes around half a second (of 0.8 seconds) on TRAS bigfile.tiger on my machine compiled with debug.
+        // Buuuuuuuut..... we need this data anyway, so we can't skip this.
+        // TODO: at least make this optional since it's not needed for every usecase.
         for( auto& object : ret.objects )
         {
             for( const auto& guid : object.references_sections )
