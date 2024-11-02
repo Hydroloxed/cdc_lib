@@ -84,8 +84,7 @@ namespace cdc_lib::file::tras::pc_w
     }
     [[nodiscard]] bool is_cdrm( score::binary_io::input_interface& a_input )
     {
-        std::string magic{};
-        score::binary_io::read_fixed_string( a_input, magic, 4 );
+        std::string magic = read_fixed_string( a_input, 4 );
         a_input.seek( a_input.tell() - 4 );
         return magic == k_magic;
     }
@@ -122,13 +121,11 @@ namespace cdc_lib::file::tras::pc_w
                 throw std::runtime_error{"Compressed block too big (corrupt CDRM)"};
 
             std::printf( "Block data @ 0x%zx:\n", a_input.tell() );
-            std::string compressed{};
-            read_fixed_string( a_input, compressed, b.compressed_size );
+            std::string compressed = read_fixed_string( a_input, b.compressed_size );
             out_data += decompress( compressed, b );
         }
         align_to( a_input, k_block_alignment );
-        std::string next_magic{};
-        score::binary_io::read_fixed_string( a_input, next_magic, 4 );
+        std::string next_magic = read_fixed_string( a_input, 4 );
         assert( next_magic == k_next_magic );
 
         return out_data;

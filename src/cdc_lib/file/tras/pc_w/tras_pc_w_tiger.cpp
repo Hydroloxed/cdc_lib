@@ -44,7 +44,7 @@ namespace cdc_lib::file::tras::pc_w
         ret.archive_count = read< std::uint32_t >( a_input );
         const auto record_count = read< std::uint32_t >( a_input );
         ret.dlc_index = read< std::uint32_t >( a_input );
-        read_fixed_string( a_input, ret.config_name, k_config_length );
+        ret.config_name = read_fixed_string( a_input, k_config_length );
         for( std::uint32_t i = 0; i < record_count; ++i )
         {
             archive_record record{};

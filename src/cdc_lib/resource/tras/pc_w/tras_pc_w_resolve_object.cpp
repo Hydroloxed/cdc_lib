@@ -49,7 +49,7 @@ namespace cdc_lib::resource::tras::pc_w
             const auto start = a_input_interface.tell();
             std::vector< std::string > strings;
             while( a_input_interface.tell() - start < a_byte_length )
-                read_c_string( a_input_interface, strings.emplace_back() );
+                strings.emplace_back( read_c_string( a_input_interface ) );
             return strings;
         }
     }

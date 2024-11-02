@@ -45,23 +45,15 @@ namespace cdc_lib::resource::ref_data
             a_object.offset = read< std::uint64_t >( a_input );
             a_object.primary_section = read< std::uint64_t >( a_input );
             a_object.path_hash = read< std::uint64_t >( a_input );
-            score::binary_io::read_c_string( a_input, a_object.path );
+            a_object.path = read_c_string( a_input );
             const auto includes_size = read< std::uint32_t >( a_input );
             a_object.includes.reserve( includes_size );
             for( auto i = 0u; i < includes_size; ++i )
-            {
-                std::string include{};
-                score::binary_io::read_c_string( a_input, include );
-                a_object.includes.push_back( include );
-            }
+                a_object.includes.push_back( read_c_string( a_input ) );
             const auto depends_size = read< std::uint32_t >( a_input );
             a_object.objects_that_depend_on.reserve( depends_size );
             for( auto i = 0u; i < depends_size; ++i )
-            {
-                std::string depends{};
-                score::binary_io::read_c_string( a_input, depends );
-                a_object.objects_that_depend_on.push_back( depends );
-            }
+                a_object.objects_that_depend_on.push_back( read_c_string( a_input ) );
             const auto references_size = read< std::uint32_t >( a_input );
             a_object.references_sections.reserve( references_size );
             for( auto i = 0u; i < references_size; ++i )
@@ -115,8 +107,7 @@ namespace cdc_lib::resource::ref_data
 
     ref_data load_refdata( score::binary_io::input_interface& a_input )
     {
-        std::string magic{};
-        read_fixed_string( a_input, magic, k_magic.size() );
+        std::string magic = read_fixed_string( a_input, k_magic.size() );
         if( magic != k_magic )
             throw std::runtime_error{"Invalid magic"};
 

@@ -30,7 +30,7 @@ std::optional< std::string > get_string_at( score::binary_io::input_interface& a
         return !a_string.empty() &&
                 std::ranges::all_of( a_string.substr( 0, a_string.size() ), 
                                     []( char a_c ) { return std::isprint( a_c ) || std::isspace( a_c ); } );
-    };
+    };  
     // some strings are terminated with MULTIPLE null bytes
     // if the next struct needs to be aligned
     auto trim_null_bytes = []( std::string_view a_string )
@@ -38,10 +38,8 @@ std::optional< std::string > get_string_at( score::binary_io::input_interface& a
         auto pos = a_string.find_last_not_of( '\0' );
         return a_string.substr( 0, pos + 1 );
     };
-    std::string str;
-    str.resize( a_length );
     a_input_interface.seek( a_offset );
-    score::binary_io::read_fixed_string( a_input_interface, str, a_length );
+    std::string str = read_fixed_string( a_input_interface, a_length );
     if( str.ends_with( '\0' ) && is_valid_string( trim_null_bytes( str ) ) )
         return str.substr( 0, str.size() - 1 );
     return {};
