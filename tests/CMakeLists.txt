@@ -1,4 +1,11 @@
 add_executable( cdc_lib_tests )
+
+include( FetchContent )
+
+FetchContent_Declare( ut
+  GIT_REPOSITORY https://github.com/boost-ext/ut.git )
+FetchContent_MakeAvailable( ut )
+
 target_sources( cdc_lib_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/resource/test_reloc_input_stream.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.cpp )
