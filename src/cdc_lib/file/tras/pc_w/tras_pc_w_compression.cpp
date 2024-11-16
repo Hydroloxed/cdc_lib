@@ -1,5 +1,6 @@
 #include "tras_pc_w_compression.h"
 #include <cassert>
+#include <fmt/core.h>
 #include <score/binary_io/binio_strings.h>
 #include <score/score_bit.h>
 #include <zlib.h>
@@ -49,10 +50,12 @@ namespace cdc_lib::file::tras::pc_w
                     stream.zfree = Z_NULL;
                     stream.opaque = Z_NULL;
                     assert( inflateInit( &stream ) == Z_OK );
+                    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.next_in = reinterpret_cast< const unsigned char* >( a_compressed.data() );
                     stream.avail_in = a_block.uncompressed_size;
                     std::string uncompressed( a_block.uncompressed_size, '\0' );
                     stream.next_out = reinterpret_cast< unsigned char* >( uncompressed.data() );
+                    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.avail_out = a_block.uncompressed_size;
 
                     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -70,6 +73,7 @@ namespace cdc_lib::file::tras::pc_w
             }
         }
 
+        // TODO: put this function in score.binary_io
         void align_to( score::binary_io::input_interface& a_input, std::size_t a_alignment )
         {
             assert( std::popcount( a_alignment ) == 1 );
@@ -77,7 +81,6 @@ namespace cdc_lib::file::tras::pc_w
             if( current_offset % a_alignment == 0 )
                 return;
             const auto padding_bytes = a_alignment - ( current_offset % a_alignment );
-            std::printf( "Padding %zu bytes\n", padding_bytes );
             a_input.seek( current_offset + padding_bytes );
             assert( a_input.tell() % a_alignment == 0 );
         }
@@ -108,19 +111,20 @@ namespace cdc_lib::file::tras::pc_w
         for( std::uint32_t i = 0; i < block_count; ++i )
         {
             auto b = block{};
-            std::printf( "Block %u @ 0x%zx:\n", i, a_input.tell() );
             const auto packed = read< std::uint32_t >( a_input );
             b.type = static_cast< block_type >( score::get_bits( packed, k_block_type_bit_range ) );
             b.uncompressed_size = score::get_bits( packed, k_uncompressed_size_bit_range );
             b.compressed_size = read< std::uint32_t >( a_input );
             align_to( a_input, k_block_alignment );
-            std::printf( "Block %u: %s, uncompressed size %zx, compressed size %zx\n", i, b.type == block_type::empty ? "empty" : "compressed", b.uncompressed_size, b.compressed_size );
             if( b.uncompressed_size > k_max_uncompressed_size )
-                throw std::runtime_error{"Uncompressed block too big (corrupt CDRM)"};
+                throw std::runtime_error{fmt::format( "Uncompressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
+                                                      b.uncompressed_size,
+                                                      k_max_uncompressed_size )};
             if( b.compressed_size > k_max_compressed_size )
-                throw std::runtime_error{"Compressed block too big (corrupt CDRM)"};
+                throw std::runtime_error{fmt::format( "Compressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
+                                                      b.compressed_size,
+                                                      k_max_compressed_size )};
 
-            std::printf( "Block data @ 0x%zx:\n", a_input.tell() );
             std::string compressed = read_fixed_string( a_input, b.compressed_size );
             out_data += decompress( compressed, b );
         }
