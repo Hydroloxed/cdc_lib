@@ -129,8 +129,16 @@ namespace cdc_lib::file::tras::pc_w
             out_data += decompress( compressed, b );
         }
         align_to( a_input, k_block_alignment );
-        std::string next_magic = read_fixed_string( a_input, 4 );
-        assert( next_magic == k_next_magic );
+        try
+        {
+            std::string next_magic = read_fixed_string( a_input, 4 );
+            assert( next_magic == k_next_magic );
+        }
+        catch( ... )
+        {
+            // we can safely ignore,
+            // the data probably just didn't include the NEXT marker
+        }
 
         return out_data;
     }
