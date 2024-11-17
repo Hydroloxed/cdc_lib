@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cdc_lib/core/core_crc32.h>
 #include <cdc_lib/file/archive_fs.h>
+#include <cdc_lib/file/tras/pc_w/tras_pc_w_compression.h>
 #include <cdc_lib/file/tras/pc_w/tras_pc_w_tiger.h>
 #include <cdc_lib/resource/rsrc_refdata.h>
 #include <cdc_lib/resource/rsrc_resolve_object.h>
@@ -99,6 +100,7 @@ namespace operation_create
                 section_ref_data.resource_type = a_section.resource_type;
                 section_ref_data.id = a_section.id;
                 section_ref_data.offset = a_section.extra_data.packed_offset;
+                section_ref_data.compressed_size = a_section.extra_data.compressed_size;
                 section_ref_data.size = a_section.size;
                 section_ref_data.relocation_table_size = a_section.relocation_table_size;
                 a_global_ref_data.sections.insert(
@@ -478,6 +480,99 @@ namespace operation_find_references
     }
 }
 
+namespace operation_make_dtp_filelist
+{
+    constexpr std::uint32_t k_resource_type_soundplex = 0xd;
+    
+    int run( int a_argc, char** a_argv )
+    {
+        cxxopts::Options options( "resource_refdata", "Dump CSV" );
+        options.add_options()
+            ( "operation", "The operation to perform", cxxopts::value< std::string >() )
+            ( "f,file", "The reference data file to use", cxxopts::value< std::string >() )
+            ( "gamedir", "The game directory", cxxopts::value< std::string >() )
+            ( "h,help", "Print help" );
+        options.parse_positional( {"operation", "file", "gamedir"} );
+        options.positional_help( "<file>" );
+        auto result = options.parse( a_argc, a_argv );
+        if( result.count( "help" ) != 0 )
+        {
+            fmt::print( "{}\n", options.help() );
+            return EXIT_FAILURE;
+        }
+        const auto filename = result["file"].as< std::string >();
+        std::ifstream stream{filename};
+        if( !stream.good() )
+        {
+            fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
+            return EXIT_FAILURE;
+        }
+        stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
+        auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
+        auto refdata = cdc_lib::resource::ref_data::load_refdata( *input_interface );
+
+        std::vector< cdc_lib::resource::ref_data::section_ref_data > soundplexes;
+        for( const auto& section : refdata.sections )
+        {
+            if( section.second.resource_type == k_resource_type_soundplex )
+                soundplexes.push_back( section.second );
+        }
+        std::ranges::sort( soundplexes, []( const auto& a_a, const auto& a_b ) { return a_a.id < a_b.id; } );
+
+        const auto bigfile = result["gamedir"].as< std::string >() + "/bigfile.000.tiger";
+        auto archive_stream = std::ifstream{bigfile, std::ios::binary};
+        auto archive_ii = score::binary_io::create_input_interface( archive_stream );
+        const auto archive = cdc_lib::file::tras::pc_w::load_archive( *archive_ii, bigfile );
+
+        for( const auto& section : soundplexes )
+        {
+            const auto compressed_data = cdc_lib::file::tras::pc_w::read_offset( archive, section.offset, section.compressed_size );
+            auto compressed_ii = score::binary_io::create_input_interface( compressed_data );
+            const auto decompressed_data = cdc_lib::file::tras::pc_w::decompress_cdrm( *compressed_ii );
+            const auto find_single = []( const std::string& a_string, const std::string& a_substring )
+            {
+                const auto first_pos = a_string.find( a_substring );
+                const auto last_pos = a_string.rfind( a_substring );
+                if( first_pos == last_pos )
+                    return first_pos;
+                return std::string::npos;
+            };
+            const auto find_one_of = [find_single]( const std::string& a_string, const std::vector< std::string >& a_substrings )
+            {
+                for( const auto& substring : a_substrings )
+                {
+                    const auto pos = find_single( a_string, substring );
+                    if( pos != std::string::npos )
+                        return pos;
+                }
+                return std::string::npos;
+            };
+            // order is important here!
+            // mp NEEDS to be last because of cases like "vo\act_01\amelias_ca*mp*\"
+            auto path_pos = find_one_of( decompressed_data, { "ambient\\",
+                                                              "music\\",
+                                                              "vo\\",
+                                                              "character\\",
+                                                              "event\\",
+                                                              "event_triggered\\",
+                                                              "object\\",
+                                                              "ui\\",
+                                                              "mp\\" } );
+            if( path_pos == std::string::npos )
+                fmt::print( "{},gr$\\audio\\snds\\<unknown>.snd\n", section.id );
+            else
+            {
+                std::string filename = decompressed_data.substr( path_pos );
+                auto null = filename.find( '\0' );
+                if( null != std::string::npos )
+                    filename = filename.substr( 0, null );
+                fmt::print( "{},gr$\\audio\\snds\\{}.snd\n", section.id, filename );
+            }
+        }
+        return EXIT_SUCCESS;
+    }
+}
+
 namespace operation_dump_sections_csv
 {
     int run( int a_argc, char** a_argv )
@@ -528,7 +623,9 @@ void show_global_help()
     fmt::print( "Operations:\n" );
     fmt::print( "  create [build]\n" );
     fmt::print( "  find-references [findref]\n" );
+    fmt::print( "  find\n" );
     fmt::print( "  dump-sections-csv [section2csv]\n" );
+    fmt::print( "  makedtplist\n" );
 }
 
 int main( int argc, char** argv )
@@ -548,6 +645,8 @@ int main( int argc, char** argv )
         return operation_find_references::run( argc, argv );
     if( operation == "dump-sections-csv" || operation == "section2csv" )
         return operation_dump_sections_csv::run( argc, argv );
+    if( operation == "makedtplist" )
+        return operation_make_dtp_filelist::run( argc, argv );
 
     show_global_help();
     return EXIT_FAILURE;

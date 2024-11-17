@@ -15,6 +15,7 @@ namespace cdc_lib::resource::ref_data
     struct section_ref_data
     {
         std::uint64_t offset{};
+        std::uint64_t compressed_size{};
         std::uint64_t size{};
         std::uint64_t relocation_table_size{};
         std::uint32_t id{};

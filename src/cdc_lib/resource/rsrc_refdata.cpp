@@ -26,6 +26,7 @@ namespace cdc_lib::resource::ref_data
             read( a_input, a_section.id );
             read( a_input, a_section.resource_type );
             a_section.section_type = static_cast< cooked_resolve_section_type >( read< std::uint32_t >( a_input ) );
+            read( a_input, a_section.compressed_size );
             read( a_input, a_section.size );
             read( a_input, a_section.relocation_table_size );
         }
@@ -36,6 +37,7 @@ namespace cdc_lib::resource::ref_data
             write( a_output, a_section.id );
             write( a_output, a_section.resource_type );
             write( a_output, static_cast< std::uint32_t >( a_section.section_type ) );
+            write( a_output, a_section.compressed_size );
             write( a_output, a_section.size );
             write( a_output, a_section.relocation_table_size );
         }
