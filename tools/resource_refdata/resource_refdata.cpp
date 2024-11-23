@@ -77,6 +77,12 @@ namespace
         std::exit( EXIT_FAILURE ); // NOLINT(concurrency-mt-unsafe)
         return cdc_lib::resource::cooked_resolve_section_type::unknown;
     }
+
+    cdc_lib::resource::ref_data::ref_data load_refdata( std::string_view a_filename )
+    {
+        auto interface = score::binary_io::open_file( a_filename );
+        return cdc_lib::resource::ref_data::load_refdata( *interface );
+    }
 }
 
 namespace operation_create
@@ -305,36 +311,26 @@ namespace operation_find
         }
         return filters;
     }
-    std::function< bool( const cdc_lib::resource::ref_data::section_ref_data& ) > get_filter_func( filter a_filter )
+    bool passes_filter( const cdc_lib::resource::ref_data::section_ref_data& a_section, filter a_filter )
     {
         switch( a_filter.by )
         {
             case filter_by::id:
-                return [a_filter]( const cdc_lib::resource::ref_data::section_ref_data& a_section ) {
-                    return perform_op( a_section.id, a_filter.value, a_filter.comparison );
-                };
+                return perform_op( a_section.id, a_filter.value, a_filter.comparison );
             case filter_by::resource_type:
-                return [a_filter]( const cdc_lib::resource::ref_data::section_ref_data& a_section ) {
-                    return perform_op( a_section.resource_type, static_cast< std::uint8_t >( a_filter.value ), a_filter.comparison );
-                };
+                return perform_op( a_section.resource_type, static_cast< std::uint8_t >( a_filter.value ), a_filter.comparison );
             case filter_by::section_type:
-                return [a_filter]( const cdc_lib::resource::ref_data::section_ref_data& a_section ) {
-                    return perform_op( a_section.section_type, 
-                                       static_cast< cdc_lib::resource::cooked_resolve_section_type >( a_filter.value ),
-                                       a_filter.comparison );
-                };
+                return perform_op( a_section.section_type, 
+                                   static_cast< cdc_lib::resource::cooked_resolve_section_type >( a_filter.value ),
+                                   a_filter.comparison );
             case filter_by::refs:
-                return [a_filter]( const cdc_lib::resource::ref_data::section_ref_data& a_section ) {
-                    return perform_op( a_section.referenced_by_objects.size(), static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
-                };
+                return perform_op( a_section.referenced_by_objects.size(),
+                                   static_cast< std::size_t >( a_filter.value ),
+                                   a_filter.comparison );
             case filter_by::size:
-                return [a_filter]( const cdc_lib::resource::ref_data::section_ref_data& a_section ) {
-                    return perform_op( a_section.size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
-                };
+                return perform_op( a_section.size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
             case filter_by::reloc_table_size:
-                return [a_filter]( const cdc_lib::resource::ref_data::section_ref_data& a_section ) {
-                    return perform_op( a_section.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
-                };
+                return perform_op( a_section.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
             case filter_by::none:
                 throw std::runtime_error{"Invalid filter."};
         }
@@ -385,17 +381,7 @@ namespace operation_find
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
         }
-        const auto filename = result["file"].as< std::string >();
-        std::ifstream stream{filename};
-        if( !stream.good() )
-        {
-            fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
-            return EXIT_FAILURE;
-        }
-        stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-        auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
-        auto refdata = cdc_lib::resource::ref_data::load_refdata( *input_interface );
-        fmt::print( "Loaded refdata from \"{}\"\n", filename );
+        auto refdata = load_refdata( result["file"].as< std::string >() );
         auto filter = result["filter"].as< std::string >();
         auto filters = parse_filter( filter );
         auto sort_by = k_filter_by_lookup.lookup_or( result["sort"].as< std::string >(), filter_by::none );
@@ -405,7 +391,7 @@ namespace operation_find
             bool filter_pass = true;
             for( const auto& filter : filters )
             {
-                if( !get_filter_func( filter )( section.second ) )
+                if( !passes_filter( section.second, filter ) )
                 {
                     filter_pass = false;
                     break;
@@ -451,16 +437,7 @@ namespace operation_find_references
         const auto section_type = string_to_section_type( result["type"].as< std::string >() );
         const auto section_id = static_cast< std::uint32_t >( result["section"].as< int >() );
         const auto section_guid = cdc_lib::resource::cooked_resource_guid{section_type, section_id};
-        const auto filename = result["file"].as< std::string >();
-        std::ifstream stream{filename};
-        if( !stream.good() )
-        {
-            fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
-            return EXIT_FAILURE;
-        }
-        stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-        auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
-        auto refdata = cdc_lib::resource::ref_data::load_refdata( *input_interface );
+        auto refdata = load_refdata( result["file"].as< std::string >() );
         const auto& section = refdata.sections.find( section_guid );
         if( section == refdata.sections.end() )
         {
@@ -500,16 +477,7 @@ namespace operation_make_dtp_filelist
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
         }
-        const auto filename = result["file"].as< std::string >();
-        std::ifstream stream{filename};
-        if( !stream.good() )
-        {
-            fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
-            return EXIT_FAILURE;
-        }
-        stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-        auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
-        auto refdata = cdc_lib::resource::ref_data::load_refdata( *input_interface );
+        auto refdata = load_refdata( result["file"].as< std::string >() );
 
         std::vector< cdc_lib::resource::ref_data::section_ref_data > soundplexes;
         for( const auto& section : refdata.sections )
@@ -592,15 +560,7 @@ namespace operation_dump_sections_csv
             return EXIT_FAILURE;
         }
         const auto filename = result["file"].as< std::string >();
-        std::ifstream stream{filename};
-        if( !stream.good() )
-        {
-            fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
-            return EXIT_FAILURE;
-        }
-        stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-        auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
-        auto refdata = cdc_lib::resource::ref_data::load_refdata( *input_interface );
+        auto refdata = load_refdata( result["file"].as< std::string >() );
         std::ofstream out{result["outfile"].as< std::string >()};
         out.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
         fmt::print( out, "id,type,resource_type,referenced_by\n" );
