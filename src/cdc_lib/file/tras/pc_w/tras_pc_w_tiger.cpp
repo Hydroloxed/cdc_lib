@@ -62,10 +62,12 @@ namespace cdc_lib::file::tras::pc_w
         const auto actual_archive_file = get_effective_archive_path( a_archive, a_offset );
         const auto dlc_index = score::get_bits( a_offset, k_offset_bit_range_dlc_index );
         if( dlc_index != a_archive.dlc_index )
-            throw std::runtime_error{fmt::format("Wrong archive ({:#x}), for offset ({:#x})", dlc_index, a_offset)};
+            throw std::runtime_error{fmt::format( "Wrong archive ({:#x}), for offset ({:#x})", dlc_index, a_offset )};
 
         std::string data( a_size, '\0' );
         auto stream = std::ifstream{actual_archive_file};
+        if( !stream.good() )
+            throw std::runtime_error{fmt::format( "Could not open file {}", actual_archive_file.c_str() )};
         stream.exceptions( std::ifstream::failbit | std::ifstream::badbit );
         stream.seekg( a_offset & k_offset_offset_mask );
         stream.read( data.data(), static_cast< std::streamsize >( a_size ) );
