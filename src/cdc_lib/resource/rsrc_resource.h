@@ -2,13 +2,11 @@
 #define CDC_LIB_RESOURCE_RSRC_RESOURCE_H
 #include <concepts>
 #include <cstdint>
-#include <functional>
 
 namespace cdc_lib::resource
 {
     class resource;
     using resource_id = std::uint64_t;
-    using resource_lookup = std::function< resource*( resource_id ) >;
 
     class resource_ref
     {
