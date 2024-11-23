@@ -20,14 +20,7 @@ int main( int argc, char** argv )
         return EXIT_FAILURE;
     }
     const auto filename = result["input"].as< std::string >();
-    std::ifstream stream{filename, std::ios::binary};
-    if( !stream.good() )
-    {
-        fmt::print(stderr, "Could not open file '{}'\n", filename.c_str());
-        return EXIT_FAILURE;
-    }
-    stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-    auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
+    auto input_interface = score::binary_io::open_file( filename );
     auto decompressed = cdc_lib::file::tras::pc_w::decompress_cdrm( *input_interface );
     const auto output_filename = [&]
     {

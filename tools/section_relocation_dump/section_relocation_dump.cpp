@@ -5,7 +5,6 @@
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resource.h>
 #include <cxxopts.hpp>
 #include <fmt/core.h>
-#include <fstream>
 #include <score/binary_io/binary_io.h>
 
 namespace c_res = cdc_lib::resource;
@@ -39,14 +38,7 @@ int main( int argc, char** argv )
         return EXIT_FAILURE;
     }
     const auto filename = result["file"].as< std::string >();
-    auto stream = std::ifstream{filename};
-    if( !stream.good() )
-    {
-        fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
-        return EXIT_FAILURE;
-    }
-    stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-    auto i_interface = score::binary_io::create_input_interface( stream );
+    auto i_interface = score::binary_io::open_file( filename );
     auto relocations = c_res::tras::pc_w::load_relocation_table( *i_interface );
     std::ranges::sort( relocations, []( const auto& a, const auto& b )
                                     { return a.src_ptr_offset < b.src_ptr_offset; } );

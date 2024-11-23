@@ -21,13 +21,7 @@ int main( int argc, char** argv )
         return EXIT_FAILURE;
     }
     const auto filename = result["file"].as< std::string >();
-    auto stream = std::ifstream{filename};
-    if( !stream.good() )
-    {
-        fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
-        return EXIT_FAILURE;
-    }
-    auto i_interface = score::binary_io::create_input_interface( stream );
+    auto i_interface = score::binary_io::open_file( filename );
     auto shader_table = cdc_lib::render::tras::pc_w::load_shader_table( *i_interface );
     for( auto i = 0; const auto& shader : shader_table->shaders )
     {

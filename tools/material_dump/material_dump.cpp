@@ -4,7 +4,6 @@
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resource.h>
 #include <cstdio>
 #include <fmt/core.h>
-#include <fstream>
 #include <score/binary_io/binary_io.h>
 #include <string>
 
@@ -131,9 +130,7 @@ int main( int argc, char** argv )
         return EXIT_FAILURE;
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    auto stream = std::ifstream{ argv[1], std::ifstream::in | std::ifstream::binary };
-    stream.exceptions( std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit );
-    auto interface = score::binary_io::create_input_interface( stream );
+    auto interface = score::binary_io::open_file( argv[1] );
     auto relocations = c_res::tras::pc_w::load_relocation_table( *interface );
     auto reloc_istream = c_res::reloc_istream{ *interface, relocations, sizeof( std::uint32_t ) };
     try

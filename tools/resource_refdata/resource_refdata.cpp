@@ -131,7 +131,7 @@ namespace operation_create
 
             try
             {
-                auto input_interface = score::binary_io::create_input_interface( data, 0, std::endian::little );
+                auto input_interface = score::binary_io::create_input_interface( data, std::endian::little );
                 auto resolve_object = cdc_lib::resource::tras::pc_w::load_object( *input_interface );
                 cdc_lib::resource::ref_data::object_ref_data object_ref_data{};
                 add_object_references( ref_data, object_ref_data, *resolve_object );
