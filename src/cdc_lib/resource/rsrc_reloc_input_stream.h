@@ -8,6 +8,7 @@
 #include <optional>
 #include <score/binary_io/binary_io.h>
 #include <stack>
+#include <vector>
 
 namespace cdc_lib::resource
 {

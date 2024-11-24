@@ -9,6 +9,7 @@
 #include <optional>
 #include <score/containers/simple_lookup_table.h>
 #include <string>
+#include <vector>
 
 namespace cdc_lib::render::tras::pc_w
 {
