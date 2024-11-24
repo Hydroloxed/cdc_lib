@@ -131,7 +131,7 @@ namespace operation_create
         };
         for( const auto& record : a_archive.records )
         {
-            auto data = cdc_lib::file::tras::pc_w::read_record( a_archive, record );
+            auto data = cdc_lib::file::read_record( a_archive, record );
             if( !is_resolve_object( data ) )
                 continue;
 
@@ -202,7 +202,7 @@ namespace operation_create
         if( result.count( "filelist" ) != 0 )
             hash_to_path = make_hash_list( std::ifstream{result["filelist"].as< std::string >()} );
         auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
-        auto archive = cdc_lib::file::tras::pc_w::load_archive( *input_interface, filename );
+        auto archive = cdc_lib::file::load_tiger_archive( *input_interface, filename );
         auto refdata = create_references( archive, hash_to_path );
         fmt::print( "Created refdata for archive \"{}\"\n", filename );
         std::ofstream output{result["output"].as< std::string >()};
@@ -490,11 +490,11 @@ namespace operation_make_dtp_filelist
         const auto bigfile = result["gamedir"].as< std::string >() + "/bigfile.000.tiger";
         auto archive_stream = std::ifstream{bigfile, std::ios::binary};
         auto archive_ii = score::binary_io::create_input_interface( archive_stream );
-        const auto archive = cdc_lib::file::tras::pc_w::load_archive( *archive_ii, bigfile );
+        const auto archive = cdc_lib::file::load_tiger_archive( *archive_ii, bigfile );
 
         for( const auto& section : soundplexes )
         {
-            const auto compressed_data = cdc_lib::file::tras::pc_w::read_offset( archive, section.offset, section.compressed_size );
+            const auto compressed_data = cdc_lib::file::read_offset( archive, section.offset, section.compressed_size );
             auto compressed_ii = score::binary_io::create_input_interface( compressed_data );
             const auto decompressed_data = cdc_lib::file::tras::pc_w::decompress_cdrm( *compressed_ii );
             const auto find_single = []( const std::string& a_string, const std::string& a_substring )

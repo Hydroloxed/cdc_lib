@@ -1,5 +1,4 @@
-#include "cdc_lib/file/archive_fs.h"
-#include <cdc_lib/file/tras/pc_w/tras_pc_w_tiger.h>
+#include <cdc_lib/file/archive_fs.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cxxopts.hpp>
@@ -7,7 +6,7 @@
 
 std::string guess_record_type( const cdc_lib::file::archive& a_archive, const cdc_lib::file::archive_record& a_record )
 {
-    const auto data = cdc_lib::file::tras::pc_w::read_record( a_archive, a_record );
+    const auto data = cdc_lib::file::read_record( a_archive, a_record );
     if( data.empty() )
         return "empty file";
     if( data[0] == '\x16' )
@@ -44,7 +43,7 @@ int main( int argc, char** argv )
     }
     const auto filename = result["file"].as< std::string >();
     auto i_interface = score::binary_io::open_file( filename );
-    auto archive = cdc_lib::file::tras::pc_w::load_archive( *i_interface, filename );
+    auto archive = cdc_lib::file::load_tiger_archive( *i_interface, filename );
     fmt::print( "archive \"{}\":\n", filename );
     fmt::print( " count: {}\n", archive.archive_count );
     fmt::print( " dlc: {}\n", archive.dlc_index );

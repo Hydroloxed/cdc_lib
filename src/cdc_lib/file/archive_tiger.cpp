@@ -1,14 +1,12 @@
-#include "tras_pc_w_tiger.h"
-#include <cassert>
+#include "archive_fs.h"
 #include <cdc_lib/file/archive_fs.h>
 #include <fmt/core.h>
 #include <fstream>
 #include <score/binary_io/binio_strings.h>
 #include <score/score_bit.h>
 #include <string>
-#include <utility>
 
-namespace cdc_lib::file::tras::pc_w
+namespace cdc_lib::file
 {
     namespace
     {
@@ -33,14 +31,20 @@ namespace cdc_lib::file::tras::pc_w
         }
     }
 
-    [[nodiscard]] archive load_archive( score::binary_io::input_interface& a_input, const std::filesystem::path& a_path )
+    [[nodiscard]] archive load_tiger_archive( score::binary_io::input_interface& a_input, const std::filesystem::path& a_path )
     {
         archive ret{};
+        if( !a_path.filename().string().ends_with( ".tiger" ) )
+            throw std::runtime_error{fmt::format( "File '{}' does not end with .tiger", a_path.string() )};
+        if( !a_path.filename().string().ends_with( ".000.tiger" ) )
+            throw std::runtime_error{fmt::format( "File '{}' is not the 0th archive", a_path.string() )};
         ret.archive_path = a_path;
         const auto magic = read< std::uint32_t >( a_input );
-        assert( magic == k_magic );
+        if( magic != k_magic )
+            throw std::runtime_error{fmt::format( "Invalid magic, expected {:#x}, got {:#x}", k_magic, magic )};
         const auto version = read< std::uint32_t >( a_input );
-        assert( version == k_version );
+        if( version != k_version )
+            throw std::runtime_error{fmt::format( "Invalid version, got {}. For now only TRAS (v3) archives are supported", version )};
         ret.archive_count = read< std::uint32_t >( a_input );
         const auto record_count = read< std::uint32_t >( a_input );
         ret.dlc_index = read< std::uint32_t >( a_input );
