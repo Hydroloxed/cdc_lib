@@ -2,9 +2,8 @@
 #include <cdc_lib/core/core_crc32.h>
 #include <cdc_lib/file/archive_fs.h>
 #include <cdc_lib/file/tras/pc_w/tras_pc_w_compression.h>
-#include <cdc_lib/file/tras/pc_w/tras_pc_w_tiger.h>
-#include <cdc_lib/resource/rsrc_refdata.h>
 #include <cdc_lib/resource/rsrc_resolve_object.h>
+#include <cdc_lib/resource/rsrc_resource_db.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resolve_object.h>
 #include <cstdlib>
 #include <cxxopts.hpp>
@@ -78,51 +77,31 @@ namespace
         return cdc_lib::resource::cooked_resolve_section_type::unknown;
     }
 
-    cdc_lib::resource::ref_data::ref_data load_refdata( std::string_view a_filename )
+    cdc_lib::resource::resource_db load_db( std::string_view a_filename )
     {
         auto interface = score::binary_io::open_file( a_filename );
-        return cdc_lib::resource::ref_data::load_refdata( *interface );
+        return cdc_lib::resource::load_db( *interface );
     }
 }
 
 namespace operation_create
 {
-    void    add_object_references( cdc_lib::resource::ref_data::ref_data& a_global_ref_data,
-                                   cdc_lib::resource::ref_data::object_ref_data& a_object_ref_data,
+    void    add_object_references( cdc_lib::resource::resource_db& a_db,
+                                   cdc_lib::resource::db_object& a_object,
                                    const cdc_lib::resource::cooked_resolve_object& a_resolve_object )
     {
-        auto find_or_create_section = [&]( const cdc_lib::resource::cooked_resolve_section& a_section )
-        {
-            auto found = a_global_ref_data.sections.find( {a_section.type, a_section.id} );
-            if( found != a_global_ref_data.sections.end() )
-            {
-                a_object_ref_data.references_sections.push_back( {a_section.type, a_section.id} );
-                found->second.referenced_by_objects.push_back( &a_object_ref_data );
-            }
-            else
-            {
-                cdc_lib::resource::ref_data::section_ref_data section_ref_data{};
-                section_ref_data.section_type = a_section.type;
-                section_ref_data.resource_type = a_section.resource_type;
-                section_ref_data.id = a_section.id;
-                section_ref_data.offset = a_section.extra_data.packed_offset;
-                section_ref_data.compressed_size = a_section.extra_data.compressed_size;
-                section_ref_data.size = a_section.size;
-                section_ref_data.relocation_table_size = a_section.relocation_table_size;
-                a_global_ref_data.sections.insert(
-                    std::pair{section_ref_data.guid(), section_ref_data} );
-                a_object_ref_data.references_sections.push_back( {a_section.type, a_section.id} );
-            }
-        };
-
         for( const auto& section : a_resolve_object.sections )
-            find_or_create_section( section );
+        {
+            if( !a_db.contains( section.guid() ) )
+                a_db.insert( section.guid(), cdc_lib::resource::resource{section} );
+            a_object.add_resource_ref( section.guid() );
+        }
     }
 
-    cdc_lib::resource::ref_data::ref_data create_references( const cdc_lib::file::archive& a_archive,
+    cdc_lib::resource::resource_db create_references( const cdc_lib::file::archive& a_archive,
                                                              const std::map< std::uint32_t, std::string >& a_hash_to_path )
     {
-        cdc_lib::resource::ref_data::ref_data ref_data{};
+        cdc_lib::resource::resource_db db{};
         auto is_resolve_object = []( std::string_view a_data )
         {
             constexpr std::size_t k_resolve_object_min_size = 0x20;
@@ -139,23 +118,22 @@ namespace operation_create
             {
                 auto input_interface = score::binary_io::create_input_interface( data, std::endian::little );
                 auto resolve_object = cdc_lib::resource::tras::pc_w::load_object( *input_interface );
-                cdc_lib::resource::ref_data::object_ref_data object_ref_data{};
-                add_object_references( ref_data, object_ref_data, *resolve_object );
-                object_ref_data.offset = record.offset;
-                object_ref_data.path_hash = record.name_hash;
-                object_ref_data.path = a_hash_to_path.contains( record.name_hash ) ?
-                    a_hash_to_path.at( record.name_hash ) :
-                    fmt::format( "{:08x}", record.name_hash );
-                object_ref_data.includes = resolve_object->includes;
-                object_ref_data.objects_that_depend_on = resolve_object->objects_that_depend_on;
-                ref_data.objects.push_back( object_ref_data );
+                std::string path = a_hash_to_path.contains( record.name_hash ) ?
+                                        a_hash_to_path.at( record.name_hash ) : 
+                                        fmt::format( "{:08x}", record.name_hash );
+                cdc_lib::resource::db_object object{path};
+                add_object_references( db, object, *resolve_object );
+                // TODO: migrate these to new resource_db system
+                // object_ref_data.includes = resolve_object->includes;
+                // object_ref_data.objects_that_depend_on = resolve_object->objects_that_depend_on;
+                db.insert( std::move( object ) );
             }
             catch( std::exception& )
             {
                 fmt::print( "Error reading object {:16x}\n", record.name_hash );
             }
         }
-        return ref_data;
+        return db;
     }
 
     std::map< std::uint32_t, std::string > make_hash_list( std::ifstream&& a_stream )
@@ -175,12 +153,12 @@ namespace operation_create
 
     int run( int a_argc, char** a_argv )
     {
-        cxxopts::Options options( "resource_refdata", "Create a resource refdata" );
+        cxxopts::Options options( "resource_db", "Create a resource database" );
         options.add_options()
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
             ( "l,filelist", "The file containing list of files in the archive", cxxopts::value< std::string >() )
             ( "t,tiger", "The tiger files to read data from", cxxopts::value< std::string >() )
-            ( "o,output", "The output file", cxxopts::value< std::string >()->default_value( "refdata.bin" ) )
+            ( "o,output", "The output file", cxxopts::value< std::string >()->default_value( "res.db" ) )
             ( "h,help", "Print help" );
         options.parse_positional( {"operation", "tiger"} );
         options.positional_help( "<tiger files>" );
@@ -203,12 +181,12 @@ namespace operation_create
             hash_to_path = make_hash_list( std::ifstream{result["filelist"].as< std::string >()} );
         auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
         auto archive = cdc_lib::file::load_tiger_archive( *input_interface, filename );
-        auto refdata = create_references( archive, hash_to_path );
-        fmt::print( "Created refdata for archive \"{}\"\n", filename );
+        auto db = create_references( archive, hash_to_path );
+        fmt::print( "Created resource_db for archive \"{}\"\n", filename );
         std::ofstream output{result["output"].as< std::string >()};
         output.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
         auto output_interface = score::binary_io::create_output_interface( output, std::endian::little );
-        cdc_lib::resource::ref_data::save_refdata( *output_interface, refdata );
+        cdc_lib::resource::save_db( *output_interface, db );
         return EXIT_SUCCESS;
     }
 }
@@ -311,51 +289,54 @@ namespace operation_find
         }
         return filters;
     }
-    bool passes_filter( const cdc_lib::resource::ref_data::section_ref_data& a_section, filter a_filter )
+    bool passes_filter( const cdc_lib::resource::resource& a_resource, filter a_filter )
     {
+        const auto& section_data = a_resource.get_section_metadata();
         switch( a_filter.by )
         {
             case filter_by::id:
-                return perform_op( a_section.id, a_filter.value, a_filter.comparison );
+                return perform_op( section_data.id, a_filter.value, a_filter.comparison );
             case filter_by::resource_type:
-                return perform_op( a_section.resource_type, static_cast< std::uint8_t >( a_filter.value ), a_filter.comparison );
+                return perform_op( section_data.resource_type, static_cast< std::uint8_t >( a_filter.value ), a_filter.comparison );
             case filter_by::section_type:
-                return perform_op( a_section.section_type, 
+                return perform_op( section_data.type,
                                    static_cast< cdc_lib::resource::cooked_resolve_section_type >( a_filter.value ),
                                    a_filter.comparison );
             case filter_by::refs:
-                return perform_op( a_section.referenced_by_objects.size(),
+                return perform_op( a_resource.get_referenced_by_objects().size(),
                                    static_cast< std::size_t >( a_filter.value ),
                                    a_filter.comparison );
             case filter_by::size:
-                return perform_op( a_section.size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
+                return perform_op( section_data.size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
             case filter_by::reloc_table_size:
-                return perform_op( a_section.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
+                return perform_op( section_data.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
             case filter_by::none:
                 throw std::runtime_error{"Invalid filter."};
         }
     }
 
-    void sort( std::vector< cdc_lib::resource::ref_data::section_ref_data >& a_sections, filter_by a_sort_by )
+    void sort( std::vector< const cdc_lib::resource::resource* >& a_sections, filter_by a_sort_by )
     {
         if( a_sort_by == filter_by::none )
             return;
         std::sort( a_sections.begin(), a_sections.end(), [a_sort_by]( const auto& a_lhs, const auto& a_rhs )
         {
+            const auto& lhs = a_lhs->get_section_metadata();
+            const auto& rhs = a_rhs->get_section_metadata();
             switch( a_sort_by )
             {
                 case filter_by::id:
-                    return a_lhs.id < a_rhs.id;
+                    return lhs.id < rhs.id;
                 case filter_by::resource_type:
-                    return a_lhs.resource_type < a_rhs.resource_type;
+                    return lhs.resource_type < rhs.resource_type;
                 case filter_by::section_type:
-                    return a_lhs.section_type < a_rhs.section_type;
+                    return lhs.type < rhs.type;
                 case filter_by::refs:
-                    return a_lhs.referenced_by_objects.size() < a_rhs.referenced_by_objects.size();
+                    return a_lhs->get_referenced_by_objects().size() < a_rhs->get_referenced_by_objects().size();
                 case filter_by::size:
-                    return a_lhs.size < a_rhs.size;
+                    return lhs.size < rhs.size;
                 case filter_by::reloc_table_size:
-                    return a_lhs.relocation_table_size < a_rhs.relocation_table_size;
+                    return lhs.relocation_table_size < rhs.relocation_table_size;
                 case filter_by::none:
                     assert( false && "what the hell did you do" );
             }
@@ -364,10 +345,10 @@ namespace operation_find
 
     int run( int a_argc, char** a_argv )
     {
-        cxxopts::Options options( "resource_refdata", "Find" );
+        cxxopts::Options options( "resource_db", "Find" );
         options.add_options()
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
-            ( "f,file", "The reference data file to use", cxxopts::value< std::string >() )
+            ( "f,file", "The resource db file to use", cxxopts::value< std::string >() )
             ( "filter", "Filter the output", cxxopts::value< std::string >() )
             ( "s,sort", "Sort the output", cxxopts::value< std::string >()->default_value( "id" ) )
             ( "h,help", "Print help" );
@@ -381,12 +362,12 @@ namespace operation_find
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
         }
-        auto refdata = load_refdata( result["file"].as< std::string >() );
+        auto db = load_db( result["file"].as< std::string >() );
         auto filter = result["filter"].as< std::string >();
         auto filters = parse_filter( filter );
         auto sort_by = k_filter_by_lookup.lookup_or( result["sort"].as< std::string >(), filter_by::none );
-        std::vector< cdc_lib::resource::ref_data::section_ref_data > sections_to_show{};
-        for( const auto& section : refdata.sections )
+        std::vector< const cdc_lib::resource::resource* > sections_to_show{};
+        for( const auto& section : db.iterate_resources() )
         {
             bool filter_pass = true;
             for( const auto& filter : filters )
@@ -398,18 +379,19 @@ namespace operation_find
                 }
             }
             if( filter_pass )
-                sections_to_show.push_back( section.second );
+                sections_to_show.push_back( &section.second );
         }
         sort( sections_to_show, sort_by );
         for( const auto& section : sections_to_show )
         {
+            const auto& section_data = section->get_section_metadata();
             fmt::print( "id {:6}, type {:15}, rt {:2x}, size {:6x}, reloc {:4x}, refs {}\n",
-                        section.id,
-                        to_string( section.section_type ),
-                        section.resource_type,
-                        section.size,
-                        section.relocation_table_size,
-                        section.referenced_by_objects.size() );
+                        section_data.id,
+                        to_string( section_data.type ),
+                        section_data.resource_type,
+                        section_data.size,
+                        section_data.relocation_table_size,
+                        section->get_referenced_by_objects().size() );
         }
         return EXIT_SUCCESS;
     }
@@ -419,10 +401,10 @@ namespace operation_find_references
 {
     int run( int a_argc, char** a_argv )
     {
-        cxxopts::Options options( "resource_refdata", "Find references" );
+        cxxopts::Options options( "resource_db", "Find references" );
         options.add_options()
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
-            ( "f,file", "The reference data file to use", cxxopts::value< std::string >() )
+            ( "f,file", "The resource db file to use", cxxopts::value< std::string >() )
             ( "s,section", "The section id to search for", cxxopts::value< int >() )
             ( "t,type", "The type id to search for", cxxopts::value< std::string >() )
             ( "h,help", "Print help" );
@@ -437,21 +419,19 @@ namespace operation_find_references
         const auto section_type = string_to_section_type( result["type"].as< std::string >() );
         const auto section_id = static_cast< std::uint32_t >( result["section"].as< int >() );
         const auto section_guid = cdc_lib::resource::cooked_resource_guid{section_type, section_id};
-        auto refdata = load_refdata( result["file"].as< std::string >() );
-        const auto& section = refdata.sections.find( section_guid );
-        if( section == refdata.sections.end() )
+        auto db = load_db( result["file"].as< std::string >() );
+        if( !db.contains( section_guid ) )
         {
-            fmt::print( "could not find section in refdata.\n" );
+            fmt::print( "could not find section in database.\n" );
             return EXIT_FAILURE;
         }
-        fmt::print( "section is referenced by {} objects\n", section->second.referenced_by_objects.size() );
-        for( const auto& object : section->second.referenced_by_objects )
+        const auto& section = db.at( section_guid );
+        fmt::print( "section is referenced by {} objects\n", section.get_referenced_by_objects().size() );
+        for( const auto& object : section.get_referenced_by_objects() )
         {
-            const auto section_index =
-                std::distance( object->references_sections.begin(),
-                               std::ranges::find( object->references_sections, section_guid ) );
-            assert( section_index != object->references_sections.size() );
-            fmt::print( "referenced by object: {:64} as section {:5}\n", object->path, section_index );
+            const auto section_index = object->find_section_index( section.guid() );
+            assert( section_index != std::nullopt );
+            fmt::print( "referenced by object: {:64} as section {:5}\n", object->get_path(), *section_index );
         }
         return EXIT_SUCCESS;
     }
@@ -463,10 +443,10 @@ namespace operation_make_dtp_filelist
     
     int run( int a_argc, char** a_argv )
     {
-        cxxopts::Options options( "resource_refdata", "Dump CSV" );
+        cxxopts::Options options( "resource_db", "Dump CSV" );
         options.add_options()
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
-            ( "f,file", "The reference data file to use", cxxopts::value< std::string >() )
+            ( "f,file", "The resource db file to use", cxxopts::value< std::string >() )
             ( "gamedir", "The game directory", cxxopts::value< std::string >() )
             ( "h,help", "Print help" );
         options.parse_positional( {"operation", "file", "gamedir"} );
@@ -477,15 +457,15 @@ namespace operation_make_dtp_filelist
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
         }
-        auto refdata = load_refdata( result["file"].as< std::string >() );
+        auto db = load_db( result["file"].as< std::string >() );
 
-        std::vector< cdc_lib::resource::ref_data::section_ref_data > soundplexes;
-        for( const auto& section : refdata.sections )
+        std::vector< cdc_lib::resource::resource* > soundplexes;
+        for( auto& section : db.iterate_resources() )
         {
-            if( section.second.resource_type == k_resource_type_soundplex )
-                soundplexes.push_back( section.second );
+            if( section.second.get_section_metadata().resource_type == k_resource_type_soundplex )
+                soundplexes.push_back( &section.second );
         }
-        std::ranges::sort( soundplexes, []( const auto& a_a, const auto& a_b ) { return a_a.id < a_b.id; } );
+        std::ranges::sort( soundplexes, []( const auto& a_a, const auto& a_b ) { return a_a->guid().id < a_b->guid().id; } );
 
         const auto bigfile = result["gamedir"].as< std::string >() + "/bigfile.000.tiger";
         auto archive_stream = std::ifstream{bigfile, std::ios::binary};
@@ -494,9 +474,7 @@ namespace operation_make_dtp_filelist
 
         for( const auto& section : soundplexes )
         {
-            const auto compressed_data = cdc_lib::file::read_offset( archive, section.offset, section.compressed_size );
-            auto compressed_ii = score::binary_io::create_input_interface( compressed_data );
-            const auto decompressed_data = cdc_lib::file::tras::pc_w::decompress_cdrm( *compressed_ii );
+            section->load_sync();
             const auto find_single = []( const std::string& a_string, const std::string& a_substring )
             {
                 const auto first_pos = a_string.find( a_substring );
@@ -517,24 +495,24 @@ namespace operation_make_dtp_filelist
             };
             // order is important here!
             // mp NEEDS to be last because of cases like "vo\act_01\amelias_ca*mp*\"
-            auto path_pos = find_one_of( decompressed_data, { "ambient\\",
-                                                              "music\\",
-                                                              "vo\\",
-                                                              "character\\",
-                                                              "event\\",
-                                                              "event_triggered\\",
-                                                              "object\\",
-                                                              "ui\\",
-                                                              "mp\\" } );
+            auto path_pos = find_one_of( section->get_raw_data().value(), { "ambient\\",
+                                                                            "music\\",
+                                                                            "vo\\",
+                                                                            "character\\",
+                                                                            "event\\",
+                                                                            "event_triggered\\",
+                                                                            "object\\",
+                                                                            "ui\\",
+                                                                            "mp\\" } );
             if( path_pos == std::string::npos )
-                fmt::print( "{},gr$\\audio\\snds\\<unknown>.snd\n", section.id );
+                fmt::print( "{},gr$\\audio\\snds\\<unknown>.snd\n", section->guid().id );
             else
             {
-                std::string filename = decompressed_data.substr( path_pos );
+                std::string filename = section->get_raw_data().value().substr( path_pos );
                 auto null = filename.find( '\0' );
                 if( null != std::string::npos )
                     filename = filename.substr( 0, null );
-                fmt::print( "{},gr$\\audio\\snds\\{}.snd\n", section.id, filename );
+                fmt::print( "{},gr$\\audio\\snds\\{}.snd\n", section->guid().id, filename );
             }
         }
         return EXIT_SUCCESS;
@@ -545,10 +523,10 @@ namespace operation_dump_sections_csv
 {
     int run( int a_argc, char** a_argv )
     {
-        cxxopts::Options options( "resource_refdata", "Dump CSV" );
+        cxxopts::Options options( "resource_db", "Dump CSV" );
         options.add_options()
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
-            ( "f,file", "The reference data file to use", cxxopts::value< std::string >() )
+            ( "f,file", "The resource db file to use", cxxopts::value< std::string >() )
             ( "o,outfile", "The output CSV file to create", cxxopts::value< std::string >()->default_value( "dump.csv" ) )
             ( "h,help", "Print help" );
         options.parse_positional( {"operation", "file"} );
@@ -560,18 +538,18 @@ namespace operation_dump_sections_csv
             return EXIT_FAILURE;
         }
         const auto filename = result["file"].as< std::string >();
-        auto refdata = load_refdata( result["file"].as< std::string >() );
+        auto db = load_db( filename );
         std::ofstream out{result["outfile"].as< std::string >()};
         out.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
         fmt::print( out, "id,type,resource_type,referenced_by\n" );
-        for( const auto& section : refdata.sections )
+        for( const auto& section : db.iterate_resources() )
         {
             fmt::print( out,
                         "{},{},{},{}\n",
                         section.first.id,
                         to_string( section.first.type ),
-                        section.second.resource_type,
-                        section.second.referenced_by_objects.size() );
+                        section.second.get_section_metadata().resource_type,
+                        section.second.get_referenced_by_objects().size() );
         }
         return EXIT_SUCCESS;
     }
@@ -579,7 +557,7 @@ namespace operation_dump_sections_csv
 
 void show_global_help()
 {
-    fmt::print( "Usage: resource_refdata <operation>\n" );
+    fmt::print( "Usage: resource_db <operation>\n" );
     fmt::print( "Operations:\n" );
     fmt::print( "  create [build]\n" );
     fmt::print( "  find-references [findref]\n" );

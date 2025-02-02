@@ -71,7 +71,7 @@ struct std::hash< cdc_lib::resource::cooked_resource_guid >
     {
         const auto h1 = std::hash< cdc_lib::resource::cooked_resolve_section_type >{}( a_guid.type );
         const auto h2 = std::hash< std::uint32_t >{}( a_guid.id );
-        return h1 ^ (h2 << 1u);
+        return h1 ^ (h2 << 3u);
     }
 };
 
