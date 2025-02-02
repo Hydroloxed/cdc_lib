@@ -61,6 +61,12 @@ namespace cdc_lib::file
         return ret;
     }
 
+    [[nodiscard]] bool can_read_offset( const archive& a_archive, std::uint32_t a_offset )
+    {
+        const auto dlc_index = score::get_bits( a_offset, k_offset_bit_range_dlc_index );
+        return dlc_index == a_archive.dlc_index;
+    }
+
     [[nodiscard]] std::string read_offset( const archive& a_archive, std::uint32_t a_offset, std::size_t a_size )
     {
         const auto actual_archive_file = get_effective_archive_path( a_archive, a_offset );
@@ -81,5 +87,60 @@ namespace cdc_lib::file
     [[nodiscard]] std::string read_record( const archive& a_archive, const archive_record& a_record )
     {
         return read_offset( a_archive, a_record.offset, a_record.size );
+    }
+
+    [[nodiscard]] bool can_read_offset( const archive_multifs& a_multifs, std::uint32_t a_offset )
+    {
+        const auto dlc_index = score::get_bits( a_offset, k_offset_bit_range_dlc_index );
+        return a_multifs.archives.contains( dlc_index );
+    }
+
+    [[nodiscard]] std::string read_offset( const archive_multifs& a_multifs, std::uint32_t a_offset, std::size_t a_size )
+    {
+        if( !can_read_offset( a_multifs, a_offset ) )
+            throw std::runtime_error{fmt::format( "Invalid offset {:#x}, no archive can read dlcindex {:#x}",
+                                                  a_offset,
+                                                  score::get_bits( a_offset, k_offset_bit_range_dlc_index ) )};
+        assert( can_read_offset( a_multifs, a_offset ) );
+        const auto dlc_index = score::get_bits( a_offset, k_offset_bit_range_dlc_index );
+        return read_offset( a_multifs.archives.at( dlc_index ), a_offset, a_size );
+    }
+
+    [[nodiscard]] std::string read_record( const archive_multifs& a_multifs, const archive_record& a_record )
+    {
+        return read_offset( a_multifs, a_record.offset, a_record.size );
+    }
+
+    [[nodiscard]] archive_multifs make_multifs_tras( const std::filesystem::path& a_game_path )
+    {
+        archive_multifs ret{};
+        ret.gamepath = a_game_path;
+        std::array known_archives =
+        {
+            "bigfile.000.tiger",
+            // "bigfile_ENGLISH.000.tiger" - TODO: add support for localized bigfiles
+            "patch.000.tiger",
+            "patch2.000.tiger",
+            "patch3.000.tiger",
+            "title.000.tiger",
+            "DLC/PACK1.000.tiger",
+            "DLC/PACK2.000.tiger",
+            "DLC/PACK3.000.tiger",
+            "DLC/PACK4.000.tiger",
+            "DLC/PACK5.000.tiger",
+            "DLC/PACK6.000.tiger",
+            "DLC/PACK7.000.tiger",
+            "DLC/PACK8.000.tiger"
+        };
+        for( const auto& path : known_archives )
+        {
+            if( std::filesystem::exists( a_game_path / path ) )
+            {
+                const auto interface = score::binary_io::open_file( (a_game_path / path).string() );
+                const auto archive = cdc_lib::file::load_tiger_archive( *interface, a_game_path / path );
+                ret.archives[archive.dlc_index] = archive;
+            }
+        }
+        return ret;
     }
 }
