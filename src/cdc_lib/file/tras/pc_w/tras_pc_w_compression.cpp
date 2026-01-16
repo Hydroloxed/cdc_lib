@@ -3,6 +3,7 @@
 #include <fmt/core.h>
 #include <score/binary_io/binio_strings.h>
 #include <score/score_bit.h>
+#include <stdexcept>
 #include <zlib.h>
 
 namespace cdc_lib::file::tras::pc_w
