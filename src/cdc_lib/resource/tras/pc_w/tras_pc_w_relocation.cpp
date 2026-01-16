@@ -150,4 +150,26 @@ namespace cdc_lib::resource::tras::pc_w
         assert( a_input_interface.tell() == data_offset );
         return relocations;
     }
+
+    void write_relocation_table( score::binary_io::output_interface& a_output_interface, std::vector< cooked_relocation > a_relocations )
+    {
+        std::vector< cooked_relocation > intern_ptrs{};
+        for( const auto& relocation : a_relocations )
+        {
+            if( relocation.is_internal() )
+                intern_ptrs.push_back( relocation );
+            else
+                assert( false && "writing external pointers is not yet supported" );
+        }
+        write< std::uint32_t >( a_output_interface, intern_ptrs.size() );
+        write< std::uint32_t >( a_output_interface, 0ul );
+        write< std::uint32_t >( a_output_interface, 0ul );
+        write< std::uint32_t >( a_output_interface, 0ul );
+        write< std::uint32_t >( a_output_interface, 0ul );
+        for( const auto& ptr : intern_ptrs )
+        {
+            write< std::uint32_t >( a_output_interface, ptr.src_ptr_offset );
+            write< std::uint32_t >( a_output_interface, ptr.dest_ptr_offset );
+        }
+    }
 }

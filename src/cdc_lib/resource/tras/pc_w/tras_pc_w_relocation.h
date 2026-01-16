@@ -15,6 +15,7 @@ namespace cdc_lib::resource::tras::pc_w
         {}
     };
     [[nodiscard]] std::vector< cooked_relocation > load_relocation_table( score::binary_io::input_interface& input_interface );
+    void write_relocation_table( score::binary_io::output_interface& a_output_interface, std::vector< cooked_relocation > a_relocations );
 }
 
 #endif
