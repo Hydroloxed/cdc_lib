@@ -1,6 +1,6 @@
 #include "archive_fs.h"
 #include <cdc_lib/file/archive_fs.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <fstream>
 #include <score/binary_io/binio_strings.h>
 #include <score/score_bit.h>
@@ -77,7 +77,7 @@ namespace cdc_lib::file
         std::string data( a_size, '\0' );
         auto stream = std::ifstream{actual_archive_file};
         if( !stream.good() )
-            throw std::runtime_error{fmt::format( "Could not open file {}", actual_archive_file.c_str() )};
+            throw std::runtime_error{fmt::format( "Could not open file {}", actual_archive_file.string() )};
         stream.exceptions( std::ifstream::failbit | std::ifstream::badbit );
         stream.seekg( a_offset & k_offset_offset_mask );
         stream.read( data.data(), static_cast< std::streamsize >( a_size ) );
@@ -114,7 +114,7 @@ namespace cdc_lib::file
     [[nodiscard]] archive_multifs make_multifs_tras( const std::filesystem::path& a_game_path )
     {
         archive_multifs ret{};
-        ret.gamepath = a_game_path;
+        ret.gamepath = a_game_path.string();
         std::array known_archives =
         {
             "bigfile.000.tiger",
