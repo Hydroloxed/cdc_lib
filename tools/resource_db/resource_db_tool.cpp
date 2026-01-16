@@ -235,7 +235,7 @@ namespace operation_find
         }
     }
 
-    constexpr score::simple_lookup_table< std::string, filter_by, 6 > k_filter_by_lookup =
+    constexpr score::simple_lookup_table< std::string_view, filter_by, 6 > k_filter_by_lookup =
     {
         std::pair{ "id", filter_by::id },
         std::pair{ "rt", filter_by::resource_type },
@@ -350,6 +350,7 @@ namespace operation_find
             ( "operation", "The operation to perform", cxxopts::value< std::string >() )
             ( "f,file", "The resource db file to use", cxxopts::value< std::string >() )
             ( "filter", "Filter the output", cxxopts::value< std::string >() )
+            ( "r,refs", "Show references" )
             ( "s,sort", "Sort the output", cxxopts::value< std::string >()->default_value( "id" ) )
             ( "h,help", "Print help" );
         options.parse_positional( {"operation", "file", "filter"} );
@@ -363,6 +364,9 @@ namespace operation_find
             return EXIT_FAILURE;
         }
         auto db = load_db( result["file"].as< std::string >() );
+        const bool show_refs = result.count( "refs" ) != 0;
+        if( show_refs )
+            db.add_resource_references();
         auto filter = result["filter"].as< std::string >();
         auto filters = parse_filter( filter );
         auto sort_by = k_filter_by_lookup.lookup_or( result["sort"].as< std::string >(), filter_by::none );
@@ -384,6 +388,9 @@ namespace operation_find
         sort( sections_to_show, sort_by );
         for( const auto& section : sections_to_show )
         {
+            std::string refs_string = std::to_string( section->get_referenced_by_objects().size() );
+            if( section->get_referenced_by_objects().size() == 1 )
+                refs_string = section->get_referenced_by_objects()[0]->get_path();
             const auto& section_data = section->get_section_metadata();
             fmt::print( "id {:6}, type {:15}, rt {:2x}, size {:6x}, reloc {:4x}, refs {}\n",
                         section_data.id,
@@ -391,7 +398,7 @@ namespace operation_find
                         section_data.resource_type,
                         section_data.size,
                         section_data.relocation_table_size,
-                        section->get_referenced_by_objects().size() );
+                        refs_string );
         }
         return EXIT_SUCCESS;
     }
@@ -425,6 +432,7 @@ namespace operation_find_references
             fmt::print( "could not find section in database.\n" );
             return EXIT_FAILURE;
         }
+		db.add_resource_references();
         const auto& section = db.at( section_guid );
         fmt::print( "section is referenced by {} objects\n", section.get_referenced_by_objects().size() );
         for( const auto& object : section.get_referenced_by_objects() )
@@ -567,6 +575,7 @@ void show_global_help()
 }
 
 int main( int argc, char** argv )
+try
 {
     if( argc < 2 )
     {
@@ -588,4 +597,8 @@ int main( int argc, char** argv )
 
     show_global_help();
     return EXIT_FAILURE;
+}
+catch( std::exception& e )
+{
+	fmt::print("{}",e.what());
 }
