@@ -169,6 +169,15 @@ namespace cdc_lib::resource
         assert( db );
         return std::ranges::all_of( referenced_resources, [this]( cooked_resource_guid a_resource ) { return db->at( a_resource ).is_loaded(); } );
     }
+	
+	void resource_db::add_resource_references()
+	{
+		for( auto& [name, o] : db_objects )
+		{
+			for( const auto& r : o.iterate_resource_references() )
+				at( r ).referenced_by_objects.push_back( &o );
+		}
+	}
 
     resource* db_object::get_primary_resource() { return &db->at( primary_section ); }
 
