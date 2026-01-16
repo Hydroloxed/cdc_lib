@@ -119,6 +119,15 @@ namespace
                 for( std::size_t i = 0; i < pad_bytes; i++ )
                     write< std::uint8_t >( *output, 0 );
             }
+            else if( line.starts_with( "str=") )
+            {
+                auto str = line.substr( line.find( "=" ) + 1 );
+                if( str.back() == '\"' )
+                    str.pop_back();
+                for( const auto ch : str )
+                    write< std::uint8_t >( *output, static_cast< std::uint8_t >( ch ) );
+                write< std::uint8_t >( *output, 0 );
+            }
             else
             {
                 fmt::print( "{}", line );
@@ -150,6 +159,7 @@ namespace
 }
 
 int main( int argc, char** argv )
+try
 {
     auto options = cxxopts::Options{"resource_mkloadob", "Create a binary resource from a text file"};
     options.add_options()
@@ -177,4 +187,9 @@ int main( int argc, char** argv )
         const auto output = score::binary_io::create_output_interface( output_file );
         write_with_relocations( *loadob_f, *output );
     }
+}
+catch( std::exception& e )
+{
+    fmt::print( stderr, "UNKNOWN ERROR: {}\n", e.what() );
+    return EXIT_FAILURE;
 }
