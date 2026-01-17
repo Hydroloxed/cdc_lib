@@ -29,6 +29,8 @@ namespace
         {
             if( auto comment = l.find( "//" ); comment != std::string::npos )
                 l = l.substr( 0, comment );
+            if( auto comment = l.find( ';' ); comment != std::string::npos )
+                l = l.substr( 0, comment );
             trim_tailing_whitespace( l );
             trim_leading_whitespace( l );
             if( l.empty() )
@@ -176,7 +178,7 @@ try
     }
     const auto input_filename = result["input"].as< std::string >();
     std::ifstream input_file{input_filename};
-    input_file.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
+    // input_file.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
     const auto input_size = std::filesystem::file_size( input_filename );
     std::string input_data( input_size, '\0'  );
     input_file.read( input_data.data(), static_cast< std::streamsize >( input_size ) );
