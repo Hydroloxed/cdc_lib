@@ -46,8 +46,8 @@ namespace cdc_lib::resource
         std::uint32_t id{0};
         bool has_debug_info{false};
         std::uint8_t resource_type{0};
+        std::uint32_t spec_mask{0};
         extra_info extra_data{};
-        // TODO: specialization masks
 
         [[nodiscard]] cooked_resource_guid guid() const { return {type, id}; }
     };

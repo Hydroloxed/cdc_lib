@@ -90,7 +90,7 @@ namespace cdc_lib::resource::tras::pc_w
             section.resource_type = score::get_bits( packed, k_section_info_bit_range_resource_type );
             section.relocation_table_size = score::get_bits( packed, k_section_info_bit_range_reloc_table_size );
             section.id = read< std::uint32_t >( a_input_interface );
-            [[maybe_unused]] const auto spec_mask = read< std::uint32_t >( a_input_interface );
+            section.spec_mask = read< std::uint32_t >( a_input_interface );
         }
 
         object->primary_section = primary_section == k_no_primary_section
