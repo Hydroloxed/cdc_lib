@@ -75,7 +75,7 @@ namespace cdc_lib::file
             throw std::runtime_error{fmt::format( "Wrong archive ({:#x}), for offset ({:#x})", dlc_index, a_offset )};
 
         std::string data( a_size, '\0' );
-        auto stream = std::ifstream{actual_archive_file};
+        auto stream = std::ifstream{actual_archive_file, std::ios::in | std::ios::binary};
         if( !stream.good() )
             throw std::runtime_error{fmt::format( "Could not open file {}", actual_archive_file.string() )};
         stream.exceptions( std::ifstream::failbit | std::ifstream::badbit );
