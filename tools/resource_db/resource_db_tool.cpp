@@ -77,7 +77,7 @@ namespace
         return cdc_lib::resource::cooked_resolve_section_type::unknown;
     }
 
-    cdc_lib::resource::resource_db load_db( std::string_view a_filename )
+    cdc_lib::resource::resource_db load_db( std::string a_filename )
     {
         auto interface = score::binary_io::open_file( a_filename );
         return cdc_lib::resource::load_db( *interface );
@@ -88,10 +88,15 @@ namespace operation_create
 {
     void    add_object_references( cdc_lib::resource::resource_db& a_db,
                                    cdc_lib::resource::db_object& a_object,
-                                   const cdc_lib::resource::cooked_resolve_object& a_resolve_object )
+                                   const cdc_lib::resource::cooked_resolve_object& a_resolve_object,
+                                   bool a_dx11_only )
     {
         for( const auto& section : a_resolve_object.sections )
         {
+            constexpr std::uint32_t k_spec_mask_dx11 = 0x80000000u;
+            if( a_dx11_only && (section.spec_mask & k_spec_mask_dx11) == 0u )
+                continue;
+
             if( !a_db.contains( section.guid() ) )
                 a_db.insert( section.guid(), cdc_lib::resource::resource{section} );
             a_object.add_resource_ref( section.guid() );
@@ -99,7 +104,8 @@ namespace operation_create
     }
 
     cdc_lib::resource::resource_db create_references( const cdc_lib::file::archive& a_archive,
-                                                             const std::map< std::uint32_t, std::string >& a_hash_to_path )
+                                                      const std::map< std::uint32_t, std::string >& a_hash_to_path,
+                                                      bool a_dx11_only )
     {
         cdc_lib::resource::resource_db db{};
         auto is_resolve_object = []( std::string_view a_data )
@@ -122,7 +128,7 @@ namespace operation_create
                                         a_hash_to_path.at( record.name_hash ) : 
                                         fmt::format( "{:08x}", record.name_hash );
                 cdc_lib::resource::db_object object{path};
-                add_object_references( db, object, *resolve_object );
+                add_object_references( db, object, *resolve_object, a_dx11_only );
                 // TODO: migrate these to new resource_db system
                 // object_ref_data.includes = resolve_object->includes;
                 // object_ref_data.objects_that_depend_on = resolve_object->objects_that_depend_on;
@@ -159,6 +165,7 @@ namespace operation_create
             ( "l,filelist", "The file containing list of files in the archive", cxxopts::value< std::string >() )
             ( "t,tiger", "The tiger files to read data from", cxxopts::value< std::string >() )
             ( "o,output", "The output file", cxxopts::value< std::string >()->default_value( "res.db" ) )
+            ( "dx11", "Skip DX9 resources", cxxopts::value< bool >() )
             ( "h,help", "Print help" );
         options.parse_positional( {"operation", "tiger"} );
         options.positional_help( "<tiger files>" );
@@ -169,21 +176,22 @@ namespace operation_create
             return EXIT_FAILURE;
         }
         const auto& filename = result["tiger"].as< std::string >();
-        std::ifstream stream{filename};
+        std::ifstream stream{filename, std::ios::in | std::ios::binary};
         if( !stream.good() )
         {
             fmt::print( stderr, "Could not open file '{}'\n", filename.c_str() );
             return EXIT_FAILURE;
         }
         stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
+        const bool dx11_only = result.count( "dx11" ) != 0;
         std::map< std::uint32_t, std::string > hash_to_path{};
         if( result.count( "filelist" ) != 0 )
             hash_to_path = make_hash_list( std::ifstream{result["filelist"].as< std::string >()} );
         auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
         auto archive = cdc_lib::file::load_tiger_archive( *input_interface, filename );
-        auto db = create_references( archive, hash_to_path );
+        auto db = create_references( archive, hash_to_path, dx11_only );
         fmt::print( "Created resource_db for archive \"{}\"\n", filename );
-        std::ofstream output{result["output"].as< std::string >()};
+        std::ofstream output{result["output"].as< std::string >(), std::ios::out | std::ios::binary};
         output.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
         auto output_interface = score::binary_io::create_output_interface( output, std::endian::little );
         cdc_lib::resource::save_db( *output_interface, db );
@@ -600,5 +608,5 @@ try
 }
 catch( std::exception& e )
 {
-	fmt::print("{}",e.what());
+	fmt::print( "{}\n", e.what() );
 }
