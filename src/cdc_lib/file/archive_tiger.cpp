@@ -49,6 +49,7 @@ namespace cdc_lib::file
         const auto record_count = read< std::uint32_t >( a_input );
         ret.dlc_index = read< std::uint32_t >( a_input );
         ret.config_name = read_fixed_string( a_input, k_config_length );
+        ret.config_name = ret.config_name.substr( 0, ret.config_name.find( '\0' ) );
         for( std::uint32_t i = 0; i < record_count; ++i )
         {
             archive_record record{};
