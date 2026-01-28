@@ -59,8 +59,8 @@ namespace cdc_lib::resource
         [[nodiscard]] std::string_view get_path() const { return path; }
         [[nodiscard]] resource* get_primary_resource();
         [[nodiscard]] cooked_resource_guid get_primary_resource_ref() const { return primary_section; }
-        [[nodiscard]] std::optional< std::size_t > find_section_index( cooked_resource_guid a_guid ) const;
         void set_primary_resource_ref( cooked_resource_guid a_guid ) { primary_section = a_guid; }
+        [[nodiscard]] std::optional< std::size_t > find_section_index( cooked_resource_guid a_guid ) const;
         [[nodiscard]] std::span< const cooked_resource_guid > iterate_resource_references() const noexcept { return std::span{referenced_resources}; }
         void add_resource_ref( cooked_resource_guid a_guid ) { referenced_resources.push_back( a_guid ); }
         void load_sync();
@@ -103,6 +103,7 @@ namespace cdc_lib::resource
         [[nodiscard]] const std::map< std::string, db_object >& iterate_objects() const { return db_objects; }
 
         [[nodiscard]] std::string load_offset_sync( std::uint64_t a_offset, std::size_t a_size );
+        void init_archive_from_gamedir( std::string_view a_gamedir );
 
         void add_resource_references();
 

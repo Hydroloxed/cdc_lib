@@ -197,6 +197,11 @@ namespace cdc_lib::resource
         return file::read_offset( archive_fs, a_offset, a_size );
     }
 
+    void resource_db::init_archive_from_gamedir( std::string_view a_gamedir )
+    {
+        archive_fs = file::make_multifs_tras( a_gamedir );
+    }
+
     void resource_db::insert( cooked_resource_guid a_guid, resource&& a_resource )
     {
         assert( (a_resource.db == nullptr || a_resource.db == this)
