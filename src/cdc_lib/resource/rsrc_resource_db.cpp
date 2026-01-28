@@ -20,7 +20,8 @@ namespace cdc_lib::resource
         constexpr std::uint32_t k_offset_64_bit_flag = 1u << 31u;
         // Version history:
         // - 1: initial version
-        constexpr std::uint32_t k_version = 1u;
+        // - 2: added specmasks
+        constexpr std::uint32_t k_version = 2u;
 
         void write( score::binary_io::output_interface& a_output, cooked_resource_guid a_guid )
         {
@@ -51,6 +52,7 @@ namespace cdc_lib::resource
             }
             write( a_output, static_cast< std::uint32_t >( a_resource.size ) );
             write( a_output, static_cast< std::uint32_t >( a_resource.extra_data.compressed_size ) ); 
+            write< std::uint32_t >( a_output, a_resource.spec_mask );
             // write( a_output, a_resource.get_section_metadata().extra_data.decompressed_offset ); - we will never use this
             const auto packed_offset = a_resource.extra_data.packed_offset;
             // save a few bytes by using a 32 bit offset, if possible
@@ -75,6 +77,7 @@ namespace cdc_lib::resource
             }
             section_metadata.size = read< std::uint32_t >( a_input );
             section_metadata.extra_data.compressed_size = read< std::uint32_t >( a_input );
+            section_metadata.spec_mask = read< std::uint32_t >( a_input );
             const auto packed_offset = read< std::uint32_t >( a_input );
             section_metadata.extra_data.packed_offset = packed_offset & ~k_offset_64_bit_flag;
             if( packed_offset & k_offset_64_bit_flag )
