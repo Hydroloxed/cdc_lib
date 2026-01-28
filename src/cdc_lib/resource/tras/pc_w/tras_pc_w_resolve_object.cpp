@@ -124,4 +124,77 @@ namespace cdc_lib::resource::tras::pc_w
 
         return object;
     }
+
+    void write_object( score::binary_io::output_interface& a_output,
+                       const cooked_resolve_object& a_object,
+                       const std::vector< std::string >& a_section_datas )
+    {
+        const auto total_strvec_size = []( const std::vector< std::string >& a_vec )
+        {
+            std::size_t size = 0;
+            for( const auto& str : a_vec )
+                size += str.size() + 1; // nullterm
+            return size;
+        };
+
+        write< std::uint32_t >( a_output, k_version );
+        write< std::uint32_t >( a_output, total_strvec_size( a_object.includes ) );
+        write< std::uint32_t >( a_output, total_strvec_size( a_object.objects_that_depend_on ) );
+        write< std::uint32_t >( a_output, 0u ); // padding
+        write< std::uint32_t >( a_output, 0u ); // projected size
+        write< std::uint32_t >( a_output, 0u ); // flags
+        write< std::uint32_t >( a_output, a_object.sections.size() );
+        if( a_object.primary_section )
+            write( a_output, static_cast< std::uint32_t >( a_object.primary_section - a_object.sections.data() ) );
+        else
+            write( a_output, static_cast< std::uint32_t >( k_no_primary_section ) );
+        for( const auto& section : a_object.sections )
+        {
+            write< std::uint32_t >( a_output, section.size );
+            write< std::uint8_t >( a_output, k_section_type_lookup.lookup_key( section.type ) );
+            write< std::uint8_t >( a_output, 0u ); // misc flags
+            write< std::uint16_t >( a_output, section.version_id );
+            std::uint32_t packed = 0u;
+            packed = score::set_bits( packed, k_section_info_bit_range_has_debug_info, section.has_debug_info ? 1u : 0u );
+            packed = score::set_bits( packed, k_section_info_bit_range_resource_type, static_cast< std::uint32_t >( section.resource_type ) );
+            packed = score::set_bits( packed, k_section_info_bit_range_reloc_table_size, static_cast< std::uint32_t >( section.relocation_table_size ) );
+            write< std::uint32_t >( a_output, packed );
+            write< std::uint32_t >( a_output, section.id );
+            write< std::uint32_t >( a_output, section.spec_mask );
+        }
+        for( const auto& str : a_object.includes )
+        {
+            for( const auto& ch : str )
+                write< std::uint8_t >( a_output, ch );
+            write< std::uint8_t >( a_output, 0u );
+        }
+        for( const auto& str : a_object.objects_that_depend_on )
+        {
+            for( const auto& ch : str )
+                write< std::uint8_t >( a_output, ch );
+            write< std::uint8_t >( a_output, 0u );
+        }
+        int i = 0;
+        for( const auto& data : a_section_datas )
+        {
+            i = i + 1;
+            const auto& section = a_object.sections[i - 1];
+            const auto interface = score::binary_io::create_input_interface( data );
+            if( section.relocation_table_size )
+            {
+                std::uint32_t sizes[5]{};
+                for( auto& s : sizes )
+                    s = read< std::uint32_t >( *interface );
+                const auto rsize = sizes[0] * 8 + sizes[1] * 4 + sizes[2] * 8 + sizes[3] * 4 + sizes[4] * 4 + 0x14;
+                if( section.relocation_table_size != rsize )
+                {
+                    std::printf("reloc table size mismatch: %x data vs %zx SectionInfo\n", rsize, section.relocation_table_size );
+                    std::printf("in section %d (%d type %d)\n", i - 1, section.id, (int)section.type);
+                }
+            }
+            if( section.relocation_table_size + section.size != data.size() )
+                std::printf( "size mismatch\n" );
+            a_output.write( std::as_bytes( std::span{data} ) );
+        }
+    }
 }

@@ -8,6 +8,9 @@ namespace cdc_lib::resource::tras::pc_w
 {
 
     std::unique_ptr< cooked_resolve_object > load_object( score::binary_io::input_interface& a_input_interface );
+    void write_object( score::binary_io::output_interface& a_output,
+                       const cooked_resolve_object& a_object,
+                       const std::vector< std::string >& a_section_datas );
 }
 
 #endif
