@@ -129,6 +129,10 @@ namespace operation_create
                                         fmt::format( "{:08x}", record.name_hash );
                 cdc_lib::resource::db_object object{path};
                 add_object_references( db, object, *resolve_object, a_dx11_only );
+                if( resolve_object->primary_section )
+                    object.set_primary_resource_ref( resolve_object->primary_section->guid() );
+                else
+                    object.set_primary_resource_ref( cdc_lib::resource::cooked_resource_guid{} );
                 // TODO: migrate these to new resource_db system
                 // object_ref_data.includes = resolve_object->includes;
                 // object_ref_data.objects_that_depend_on = resolve_object->objects_that_depend_on;
