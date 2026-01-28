@@ -4,6 +4,7 @@
 #include <score/binary_io/binio_strings.h>
 #include <score/score_bit.h>
 #include <stdexcept>
+#include <vector>
 #include <zlib.h>
 
 namespace cdc_lib::file::tras::pc_w
@@ -109,6 +110,7 @@ namespace cdc_lib::file::tras::pc_w
         while( padding_bytes_count-- )
             skip_bytes< 1 >( a_input );
         std::string out_data{};
+        std::vector< block > blocks;
         for( std::uint32_t i = 0; i < block_count; ++i )
         {
             auto b = block{};
@@ -116,7 +118,6 @@ namespace cdc_lib::file::tras::pc_w
             b.type = static_cast< block_type >( score::get_bits( packed, k_block_type_bit_range ) );
             b.uncompressed_size = score::get_bits( packed, k_uncompressed_size_bit_range );
             b.compressed_size = read< std::uint32_t >( a_input );
-            align_to( a_input, k_block_alignment );
             if( b.uncompressed_size > k_max_uncompressed_size )
                 throw std::runtime_error{fmt::format( "Uncompressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
                                                       b.uncompressed_size,
@@ -125,11 +126,15 @@ namespace cdc_lib::file::tras::pc_w
                 throw std::runtime_error{fmt::format( "Compressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
                                                       b.compressed_size,
                                                       k_max_compressed_size )};
-
-            std::string compressed = read_fixed_string( a_input, b.compressed_size );
-            out_data += decompress( compressed, b );
+            blocks.push_back( b );
         }
         align_to( a_input, k_block_alignment );
+        for( const auto& b : blocks )
+        {
+            std::string compressed = read_fixed_string( a_input, b.compressed_size );
+            out_data += decompress( compressed, b );
+            align_to( a_input, k_block_alignment );
+        }
         try
         {
             std::string next_magic = read_fixed_string( a_input, 4 );
