@@ -352,6 +352,7 @@ namespace operation_find
                 case filter_by::none:
                     assert( false && "what the hell did you do" );
             }
+            assert( false );
         } );
     }
 
