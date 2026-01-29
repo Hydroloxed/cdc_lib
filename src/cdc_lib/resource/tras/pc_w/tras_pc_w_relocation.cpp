@@ -10,7 +10,11 @@ namespace cdc_lib::resource::tras::pc_w
     namespace
     {
         constexpr score::bit_range k_resource_guid_id_range   = {0u,  25u};
-        constexpr score::bit_range k_resource_guid_type_range = {24u, 8u};
+        constexpr score::bit_range k_resource_guid_type_range = {25u, 7u};
+
+        constexpr score::bit_range k_extern_ptr_section_index_range [[maybe_unused]] = {0u,  16u};
+        constexpr score::bit_range k_extern_ptr_pointer_offset_range                 = {16u, 23u};
+        constexpr score::bit_range k_extern_ptr_referenced_offset_range              = {39u, 25u};
 
         // There's technically no maximum size for the relocation table, but
         // this is the largest possible value that can be stored in SectionInfo.
@@ -50,14 +54,12 @@ namespace cdc_lib::resource::tras::pc_w
             {
                 .src_ptr_offset = ptr_offset,
                 .dest_ptr_offset = referenced_offset,
-                .resource = std::nullopt
+                .resource = std::nullopt,
+                .type = cooked_relocation_type::internal
             };
         };
         auto read_extern_ptr = [&a_input_interface, data_offset]()
         {
-            constexpr score::bit_range k_extern_ptr_section_index_range [[maybe_unused]] = {0u,  16u};
-            constexpr score::bit_range k_extern_ptr_pointer_offset_range                 = {16u, 23u};
-            constexpr score::bit_range k_extern_ptr_referenced_offset_range              = {39u, 25u};
 
             const auto packed = read< std::uint64_t >( a_input_interface );
             const auto pointer_offset = score::get_bits( packed, k_extern_ptr_pointer_offset_range ) * 4;
@@ -75,7 +77,8 @@ namespace cdc_lib::resource::tras::pc_w
             {
                 .src_ptr_offset = static_cast< unsigned >( pointer_offset ),
                 .dest_ptr_offset = static_cast< unsigned >( score::get_bits( packed, k_extern_ptr_referenced_offset_range ) ),
-                .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()}
+                .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()},
+                .type = cooked_relocation_type::external
             };
         };
         auto read_resource_id_16 = [&a_input_interface, data_offset]()
@@ -101,10 +104,11 @@ namespace cdc_lib::resource::tras::pc_w
             {
                 .src_ptr_offset = static_cast< unsigned >( resource_id_low_offset ),
                 .dest_ptr_offset = static_cast< unsigned >( resource_id_high ),
-                .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()}
+                .resource = resource_ref{resource_ref_id{resource_id, static_cast< std::uint8_t >( resource_type )}.pack()},
+                .type = cooked_relocation_type::resource_id16
             };
         };
-        auto read_resource_pointer = [&a_input_interface, data_offset]( [[maybe_unused]] bool a_is_resource_id )
+        auto read_resource_pointer = [&a_input_interface, data_offset]( bool a_is_resource_id )
         {
             constexpr score::bit_range k_resource_id_range   = {0u, 25u};
             constexpr score::bit_range k_resource_type_range = {25u, 7u};
@@ -132,7 +136,8 @@ namespace cdc_lib::resource::tras::pc_w
             {
                 .src_ptr_offset = resource_id_offset,
                 .dest_ptr_offset = 0,
-                .resource = resource_ref{ resource_ref_id{ resource_id, static_cast< std::uint8_t >( resource_type ) }.pack() }
+                .resource = resource_ref{ resource_ref_id{ resource_id, static_cast< std::uint8_t >( resource_type ) }.pack() },
+                .type = a_is_resource_id ? cooked_relocation_type::resource_id : cooked_relocation_type::resource_pointer
             };
         };
         for( std::uint32_t i = 0; i < intern_ptr_count; i++ )
@@ -151,18 +156,23 @@ namespace cdc_lib::resource::tras::pc_w
         return relocations;
     }
 
-    void write_relocation_table( score::binary_io::output_interface& a_output_interface, std::vector< cooked_relocation > a_relocations )
+    void write_relocation_table( score::binary_io::output_interface& a_output_interface,
+                                 std::vector< cooked_relocation > a_relocations,
+                                 std::string& a_resource_data )
     {
         std::vector< cooked_relocation > intern_ptrs{};
+        std::vector< cooked_relocation > extern_ptrs{};
         for( const auto& relocation : a_relocations )
         {
             if( relocation.is_internal() )
                 intern_ptrs.push_back( relocation );
+            else if( relocation.type == cooked_relocation_type::external )
+                extern_ptrs.push_back( relocation );
             else
                 assert( false && "writing external pointers is not yet supported" );
         }
         write< std::uint32_t >( a_output_interface, intern_ptrs.size() );
-        write< std::uint32_t >( a_output_interface, 0ul );
+        write< std::uint32_t >( a_output_interface, extern_ptrs.size() );
         write< std::uint32_t >( a_output_interface, 0ul );
         write< std::uint32_t >( a_output_interface, 0ul );
         write< std::uint32_t >( a_output_interface, 0ul );
@@ -170,6 +180,25 @@ namespace cdc_lib::resource::tras::pc_w
         {
             write< std::uint32_t >( a_output_interface, ptr.src_ptr_offset );
             write< std::uint32_t >( a_output_interface, ptr.dest_ptr_offset );
+        }
+        for( const auto& ptr : extern_ptrs )
+        {
+            std::uint64_t packed = 0;
+            packed = score::set_bits< std::uint64_t >( packed, k_extern_ptr_pointer_offset_range, ptr.src_ptr_offset / 4 ); 
+            packed = score::set_bits< std::uint64_t >( packed, k_extern_ptr_referenced_offset_range, ptr.dest_ptr_offset );
+            write< std::uint64_t >( a_output_interface, packed );
+            std::string temp_data{};
+            std::uint32_t guid = 0;
+            resource_ref_id id{ptr.resource->get_user_id()};
+            guid = score::set_bits< std::uint32_t >( guid, k_resource_guid_id_range, id.resource_id );
+            guid = score::set_bits< std::uint32_t >( guid, k_resource_guid_type_range, id.section_type );
+            auto temp_oo = score::binary_io::create_output_interface( temp_data, a_output_interface.endian() );
+            write< std::uint32_t >( *temp_oo, guid );
+            std::printf( "write: %x %x %x %x\n", temp_data[0], temp_data[1], temp_data[2], temp_data[3] );
+            a_resource_data[ptr.src_ptr_offset] = temp_data[0];
+            a_resource_data[ptr.src_ptr_offset + 1] = temp_data[1];
+            a_resource_data[ptr.src_ptr_offset + 2] = temp_data[2];
+            a_resource_data[ptr.src_ptr_offset + 3] = temp_data[3];
         }
     }
 }

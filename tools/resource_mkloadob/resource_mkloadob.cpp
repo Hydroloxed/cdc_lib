@@ -1,5 +1,6 @@
 #include <cdc_lib/resource/rsrc_relocation.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_relocation.h>
+#include <cdc_lib/resource/tras/pc_w/tras_pc_w_resource.h>
 #include <cxxopts.hpp>
 #include <fmt/core.h>
 #include <fstream>
@@ -50,7 +51,8 @@ namespace
     {
         std::string binary_data{};
         std::map< std::string, std::size_t > subsection_offsets{};
-        std::vector< loadob_internal_relocation > relocations{};
+        std::vector< loadob_internal_relocation > internal_relocations{};
+        std::vector< cdc_lib::resource::cooked_relocation > relocations{};
     };
 
     std::optional< loadob_file > load( const std::string& a_data )
@@ -82,11 +84,47 @@ namespace
                 const bool is_null = subsection_name == "null" || subsection_name == "0";
                 if( !is_null )
                 {
-                    ret.relocations.push_back( {.src_offset = static_cast< std::uint32_t >( output->tell() ),
-                                                .referenced_subsection = subsection_name} );
+                    ret.internal_relocations.push_back( {.src_offset = static_cast< std::uint32_t >( output->tell() ),
+                                                         .referenced_subsection = subsection_name} );
                 }
                 constexpr std::uint32_t k_pointer_placeholder = 0xbeebbeebul;
                 write< std::uint32_t >( *output, is_null ? 0ul : k_pointer_placeholder ); // TODO: 32-bit only
+            }
+            else if( line.starts_with( "externptr=" ) )
+            {
+                const auto data = line.substr( sizeof "externptr=" - 1 );
+                std::array< std::string::size_type, 3 > colon_pos{};
+                colon_pos[0] = data.find( ':' );
+                colon_pos[1] = data.find( ':', colon_pos[0] + 1 );
+                if( colon_pos[0] == std::string::npos )
+                {
+                    fmt::print( stderr, "{}\n", line );
+                    fmt::print( stderr, "ERROR: invalid externptr format!\n" );
+                    fmt::print( stderr, "Wanted format: externptr=:<type>:<id>[:offset]\n" );
+                    return std::nullopt;
+                }
+                const auto type = data.substr( 0, colon_pos[0] );
+                std::uint8_t type_int = std::stoul( type, nullptr, 0 );
+                const auto id = data.substr( colon_pos[0] + 1,
+                                             colon_pos[1] == std::string::npos
+                                               ? std::string::npos
+                                               : colon_pos[1] - colon_pos[0] - 1 );
+                std::uint32_t id_int = std::stoul( id, nullptr, 0 );
+                auto offset = 0ul;
+                if( colon_pos[1] != std::string::npos )
+                    offset = std::stoul( data.substr( colon_pos[1] + 1 ), nullptr, 0 );
+
+                using namespace cdc_lib::resource;
+
+                tras::pc_w::resource_ref_id ref_id{id_int, type_int};
+                cooked_relocation relocation = {};
+                relocation.resource = resource_ref{ref_id.pack()};
+                relocation.src_ptr_offset = static_cast< std::uint32_t >( output->tell() );
+                relocation.dest_ptr_offset = offset;
+                relocation.type = cooked_relocation_type::external;
+                ret.relocations.push_back( relocation );
+                // We can just write whatever here, the actual value will be filled in later
+                write< std::uint32_t >( *output, 0x0 );
             }
             else if( line.starts_with( "uint" ) || line.starts_with( "int" ) )
             {
@@ -140,10 +178,10 @@ namespace
         return ret;
     }
 
-    void write_with_relocations( const loadob_file& a_file, score::binary_io::output_interface& a_output )
+    void write_with_relocations( loadob_file& a_file, score::binary_io::output_interface& a_output )
     {
-        std::vector< cdc_lib::resource::cooked_relocation > relocations{};
-        for( const auto& relocation : a_file.relocations )
+        std::vector< cdc_lib::resource::cooked_relocation > relocations = a_file.relocations;
+        for( const auto& relocation : a_file.internal_relocations )
         {
             if( !a_file.subsection_offsets.contains( relocation.referenced_subsection ) )
             {
@@ -155,7 +193,7 @@ namespace
                 relocations.push_back( {.src_ptr_offset = relocation.src_offset, .dest_ptr_offset = dest_offset} );
             }
         }
-        cdc_lib::resource::tras::pc_w::write_relocation_table( a_output, relocations );
+        cdc_lib::resource::tras::pc_w::write_relocation_table( a_output, relocations, a_file.binary_data );
         a_output.write( std::as_bytes( std::span{a_file.binary_data.data(), a_file.binary_data.size()} ) );
     }
 }
