@@ -64,6 +64,15 @@ namespace
         {
             if( line.empty() )
                 continue;
+            
+            const auto err_if_not_aligned = [&output, &line]( std::size_t a_alignment )
+            {
+                if( output->tell() % a_alignment != 0 )
+                {
+                    fmt::print( stderr, "{}\n", line );
+                    fmt::print( stderr, "ERROR: not aligned to {} bytes!\n", a_alignment );
+                }
+            };
 
             // subsection
             // for example: "[My level]"
@@ -78,8 +87,15 @@ namespace
                 ret.subsection_offsets[name] = output->tell();
                 fmt::print( "subsection '{}' @ {:3x}\n", name, output->tell() );
             }
+            else if( line.starts_with( "align=" ) )
+            {
+                const auto alignment = std::stoul( line.substr( sizeof "align=" - 1 ) );
+                while( output->tell() % alignment != 0 )
+                    write< std::uint8_t >( *output, 0 );
+            }
             else if( line.starts_with( "ptr=" ) )
             {
+                err_if_not_aligned( 4 );
                 const auto subsection_name = line.substr( sizeof "ptr=" - 1 );
                 const bool is_null = subsection_name == "null" || subsection_name == "0";
                 if( !is_null )
@@ -92,6 +108,7 @@ namespace
             }
             else if( line.starts_with( "externptr=" ) )
             {
+                err_if_not_aligned( 4 );
                 const auto data = line.substr( sizeof "externptr=" - 1 );
                 std::array< std::string::size_type, 3 > colon_pos{};
                 colon_pos[0] = data.find( ':' );
