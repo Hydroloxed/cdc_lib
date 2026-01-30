@@ -240,7 +240,7 @@ try
 
     if( auto loadob_f = load( input_data ) )
     {
-        std::ofstream output_file{result["output"].as< std::string >()};
+        std::ofstream output_file{result["output"].as< std::string >(), std::ios::out | std::ios::binary};
         const auto output = score::binary_io::create_output_interface( output_file );
         write_with_relocations( *loadob_f, *output );
     }
