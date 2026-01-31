@@ -93,6 +93,25 @@ namespace
                 while( output->tell() % alignment != 0 )
                     write< std::uint8_t >( *output, 0 );
             }
+            else if( line.starts_with( "repeat=" ) )
+            {
+                const auto data = line.substr( line.find( '=' ) + 1 );
+                if( data.find( ':' ) == std::string::npos )
+                {
+                    fmt::print( stderr, "{}\n", line );
+                    fmt::print( stderr, "ERROR: invalid repeat format!\n" );
+                    fmt::print( stderr, "Wanted format: repeat=<count>:<size>,\n" );
+                    fmt::print( stderr, " where size is the number of previous bytes to repeat.\n" );
+                    return std::nullopt;
+                }
+                const auto count = std::stoul( data.substr( 0, data.find( ':' ) ), nullptr, 0 );
+                const auto size = std::stoul( data.substr( data.find( ':' ) + 1 ), nullptr, 0 );
+                for( std::size_t i = 0; i < count; i++ )
+                {
+                    const auto data = ret.binary_data.substr( output->tell() - size, size );
+                    output->write( std::as_bytes( std::span{data} ) );
+                }
+            }
             else if( line.starts_with( "ptr=" ) )
             {
                 err_if_not_aligned( 4 );
