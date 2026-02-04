@@ -32,17 +32,20 @@ void dump_section( const cdc_lib::resource::cooked_resolve_section& a_section,
                    int  a_index )
 {
     if( !a_verbose )
-        fmt::print( "section {:4}, id {:6}, size '{:6}', type '{:4}', rt '{}', offset '{:08x}, dcmpo '{:08x}'\n",
+        fmt::print( "section {:4} id {:6} size {:6}/{:4}/{:6} type {:4} rt {} offset {:08x} dcmpo {:08x} spec {:08x}\n",
                     a_index,
                     a_section.id,
                     a_section.size,
+                    a_section.relocation_table_size,
+                    a_section.extra_data.compressed_size,
                     get_section_short_name( a_section.type ),
                     // Display non-zero resource types in noticeable colors.
                     // TODO: make this configurable
                     fmt::styled( fmt::format( "{:2x}", a_section.resource_type ),
                                            fmt::fg( a_section.resource_type == 0 ? fmt::color::dark_gray : fmt::color::white ) ),
                     a_section.extra_data.packed_offset,
-                    a_section.extra_data.decompressed_offset );
+                    a_section.extra_data.decompressed_offset,
+                    a_section.spec_mask );
 }
 
 int main( int argc, char** argv )
