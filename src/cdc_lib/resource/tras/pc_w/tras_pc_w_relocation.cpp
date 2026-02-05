@@ -12,6 +12,10 @@ namespace cdc_lib::resource::tras::pc_w
         constexpr score::bit_range k_resource_guid_id_range   = {0u,  25u};
         constexpr score::bit_range k_resource_guid_type_range = {25u, 7u};
 
+        
+        constexpr score::bit_range k_resource_pointer_offset_range   = {0u, 25u};
+        constexpr score::bit_range k_resource_pointer_type_range = {25u, 7u};
+
         constexpr score::bit_range k_extern_ptr_section_index_range [[maybe_unused]] = {0u,  16u};
         constexpr score::bit_range k_extern_ptr_pointer_offset_range                 = {16u, 23u};
         constexpr score::bit_range k_extern_ptr_referenced_offset_range              = {39u, 25u};
@@ -110,19 +114,17 @@ namespace cdc_lib::resource::tras::pc_w
         };
         auto read_resource_pointer = [&a_input_interface, data_offset]( bool a_is_resource_id )
         {
-            constexpr score::bit_range k_resource_id_range   = {0u, 25u};
-            constexpr score::bit_range k_resource_type_range = {25u, 7u};
             // resource pointer ids are always 31 bits
-            // the purpose of the remaining bit is unknown,
-            // but i think it's used to determine if the section type pointed to
-            // is unique or not (i.e. colmesh, or generic)
-            // because the CMeshResource pointer in UnitData always seems to
-            // have this flag set.
+            // the top bit is used to express whether the pointer is optional
+            // if so, it will be set to null if resource id wasn't found at runtime
+            // otherwise, it will assert
+            // Source: cdc\runtime\cdcResource\TigerSectionLoader.cpp
+            // Lines 673...685
             constexpr std::uint32_t k_resource_id_mask = 0x7fffffffu;
             [[maybe_unused]] constexpr std::uint32_t k_resource_id_unknown_bit_mask = 0x80000000u;
             const auto packed = read< std::uint32_t >( a_input_interface );
-            const auto resource_id_offset = score::get_bits( packed, k_resource_id_range ) * 4u;
-            const auto resource_type = score::get_bits( packed, k_resource_type_range );
+            const auto resource_id_offset = score::get_bits( packed, k_resource_pointer_offset_range ) * 4u;
+            const auto resource_type = score::get_bits( packed, k_resource_pointer_type_range );
             const auto resource_id = [&a_input_interface, data_offset, resource_id_offset]()
             {
                 const auto old_stream_position = a_input_interface.tell();
@@ -162,20 +164,23 @@ namespace cdc_lib::resource::tras::pc_w
     {
         std::vector< cooked_relocation > intern_ptrs{};
         std::vector< cooked_relocation > extern_ptrs{};
+        std::vector< cooked_relocation > resource_ptrs{};
         for( const auto& relocation : a_relocations )
         {
             if( relocation.is_internal() )
                 intern_ptrs.push_back( relocation );
             else if( relocation.type == cooked_relocation_type::external )
                 extern_ptrs.push_back( relocation );
+            else if( relocation.type == cooked_relocation_type::resource_pointer )
+                resource_ptrs.push_back( relocation );
             else
-                assert( false && "writing external pointers is not yet supported" );
+                assert( false && "Unsupported relocation" );
         }
         write< std::uint32_t >( a_output_interface, intern_ptrs.size() );
         write< std::uint32_t >( a_output_interface, extern_ptrs.size() );
         write< std::uint32_t >( a_output_interface, 0ul );
         write< std::uint32_t >( a_output_interface, 0ul );
-        write< std::uint32_t >( a_output_interface, 0ul );
+        write< std::uint32_t >( a_output_interface, resource_ptrs.size() );
         for( const auto& ptr : intern_ptrs )
         {
             write< std::uint32_t >( a_output_interface, ptr.src_ptr_offset );
@@ -187,14 +192,29 @@ namespace cdc_lib::resource::tras::pc_w
             packed = score::set_bits< std::uint64_t >( packed, k_extern_ptr_pointer_offset_range, ptr.src_ptr_offset / 4 ); 
             packed = score::set_bits< std::uint64_t >( packed, k_extern_ptr_referenced_offset_range, ptr.dest_ptr_offset );
             write< std::uint64_t >( a_output_interface, packed );
-            std::string temp_data{};
             std::uint32_t guid = 0;
             resource_ref_id id{ptr.resource->get_user_id()};
             guid = score::set_bits< std::uint32_t >( guid, k_resource_guid_id_range, id.resource_id );
             guid = score::set_bits< std::uint32_t >( guid, k_resource_guid_type_range, id.section_type );
+            std::string temp_data{};
             auto temp_oo = score::binary_io::create_output_interface( temp_data, a_output_interface.endian() );
             write< std::uint32_t >( *temp_oo, guid );
-            std::printf( "write: %x %x %x %x\n", temp_data[0], temp_data[1], temp_data[2], temp_data[3] );
+            a_resource_data[ptr.src_ptr_offset] = temp_data[0];
+            a_resource_data[ptr.src_ptr_offset + 1] = temp_data[1];
+            a_resource_data[ptr.src_ptr_offset + 2] = temp_data[2];
+            a_resource_data[ptr.src_ptr_offset + 3] = temp_data[3];
+        }
+        for( const auto& ptr : resource_ptrs )
+        {
+            resource_ref_id id{ptr.resource->get_user_id()};
+            std::uint32_t packed = 0;
+            packed = score::set_bits< std::uint32_t >( packed, k_resource_pointer_offset_range, ptr.src_ptr_offset / 4 );
+            packed = score::set_bits< std::uint32_t >( packed, k_resource_pointer_type_range, id.section_type );
+            write< std::uint32_t >( a_output_interface, packed );
+
+            std::string temp_data{};
+            auto temp_oo = score::binary_io::create_output_interface( temp_data, a_output_interface.endian() );
+            write< std::uint32_t >( *temp_oo, id.resource_id );
             a_resource_data[ptr.src_ptr_offset] = temp_data[0];
             a_resource_data[ptr.src_ptr_offset + 1] = temp_data[1];
             a_resource_data[ptr.src_ptr_offset + 2] = temp_data[2];

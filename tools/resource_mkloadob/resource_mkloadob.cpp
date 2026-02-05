@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cdc_lib/resource/rsrc_relocation.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_relocation.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resource.h>
@@ -54,6 +55,58 @@ namespace
         std::vector< loadob_internal_relocation > internal_relocations{};
         std::vector< cdc_lib::resource::cooked_relocation > relocations{};
     };
+
+    std::optional< cdc_lib::resource::cooked_relocation > parse_reloc( const std::string& a_line,
+                                                                       std::size_t a_current_offset )
+    {
+        using namespace cdc_lib::resource;
+
+        const auto ptr_type_str = a_line.substr( 0, a_line.find( '=' ) );
+        cooked_relocation_type ptr_type{};
+        if( ptr_type_str == "externptr" )
+            ptr_type = cooked_relocation_type::external;
+        else if( ptr_type_str == "resourceptr" )
+            ptr_type = cooked_relocation_type::resource_pointer;
+        else
+            assert( false && "Code error" );
+
+        const auto data = a_line.substr( a_line.find( '=' ) + 1 );
+        std::array< std::string::size_type, 3 > colon_pos{};
+        colon_pos[0] = data.find( ':' );
+        colon_pos[1] = data.find( ':', colon_pos[0] + 1 );
+        if( colon_pos[0] == std::string::npos )
+        {
+            fmt::print( stderr, "{}\n", a_line );
+            fmt::print( stderr, "ERROR: invalid external ptr format!\n" );
+            fmt::print( stderr, "Wanted format: <ptrtype>=:<type>:<id>[:offset]\n" );
+            return std::nullopt;
+        }
+        const auto type = data.substr( 0, colon_pos[0] );
+        std::uint8_t type_int = std::stoul( type, nullptr, 0 );
+        const auto id = data.substr( colon_pos[0] + 1,
+                                     colon_pos[1] == std::string::npos
+                                     ? std::string::npos
+                                     : colon_pos[1] - colon_pos[0] - 1 );
+        std::uint32_t id_int = std::stoul( id, nullptr, 0 );
+        auto offset = 0ul;
+        if( colon_pos[1] != std::string::npos )
+            offset = std::stoul( data.substr( colon_pos[1] + 1 ), nullptr, 0 );
+
+        if( offset != 0 && ptr_type != cooked_relocation_type::external )
+        {
+            fmt::print( stderr, "{}\n", a_line );
+            fmt::print( stderr, "ERROR: only externptrs support target offsets!\n" );
+            return std::nullopt;
+        }
+
+        tras::pc_w::resource_ref_id ref_id{id_int, type_int};
+        cooked_relocation relocation = {};
+        relocation.resource = resource_ref{ref_id.pack()};
+        relocation.src_ptr_offset = static_cast< std::uint32_t >( a_current_offset );
+        relocation.dest_ptr_offset = offset;
+        relocation.type = ptr_type;
+        return relocation;
+    }
 
     std::optional< loadob_file > load( const std::string& a_data )
     {
@@ -128,37 +181,22 @@ namespace
             else if( line.starts_with( "externptr=" ) )
             {
                 err_if_not_aligned( 4 );
-                const auto data = line.substr( sizeof "externptr=" - 1 );
-                std::array< std::string::size_type, 3 > colon_pos{};
-                colon_pos[0] = data.find( ':' );
-                colon_pos[1] = data.find( ':', colon_pos[0] + 1 );
-                if( colon_pos[0] == std::string::npos )
-                {
-                    fmt::print( stderr, "{}\n", line );
-                    fmt::print( stderr, "ERROR: invalid externptr format!\n" );
-                    fmt::print( stderr, "Wanted format: externptr=:<type>:<id>[:offset]\n" );
+                const auto reloc = parse_reloc( line, output->tell() );
+                if( !reloc )
                     return std::nullopt;
-                }
-                const auto type = data.substr( 0, colon_pos[0] );
-                std::uint8_t type_int = std::stoul( type, nullptr, 0 );
-                const auto id = data.substr( colon_pos[0] + 1,
-                                             colon_pos[1] == std::string::npos
-                                               ? std::string::npos
-                                               : colon_pos[1] - colon_pos[0] - 1 );
-                std::uint32_t id_int = std::stoul( id, nullptr, 0 );
-                auto offset = 0ul;
-                if( colon_pos[1] != std::string::npos )
-                    offset = std::stoul( data.substr( colon_pos[1] + 1 ), nullptr, 0 );
 
-                using namespace cdc_lib::resource;
+                ret.relocations.push_back( *reloc );
+                // We can just write whatever here, the actual value will be filled in later
+                write< std::uint32_t >( *output, 0x0 );
+            }
+            else if( line.starts_with( "resourceptr=" ) )
+            {
+                err_if_not_aligned( 4 );
+                const auto reloc = parse_reloc( line, output->tell() );
+                if( !reloc )
+                    return std::nullopt;
 
-                tras::pc_w::resource_ref_id ref_id{id_int, type_int};
-                cooked_relocation relocation = {};
-                relocation.resource = resource_ref{ref_id.pack()};
-                relocation.src_ptr_offset = static_cast< std::uint32_t >( output->tell() );
-                relocation.dest_ptr_offset = offset;
-                relocation.type = cooked_relocation_type::external;
-                ret.relocations.push_back( relocation );
+                ret.relocations.push_back( *reloc );
                 // We can just write whatever here, the actual value will be filled in later
                 write< std::uint32_t >( *output, 0x0 );
             }
