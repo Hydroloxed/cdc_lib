@@ -202,17 +202,30 @@ namespace
             }
             else if( line.starts_with( "uint" ) || line.starts_with( "int" ) )
             {
-                const auto int_str = line.substr( line.find( "=" ) + 1 );
+                const auto data = line.substr( line.find( "=" ) + 1 );
+                std::istringstream str{data};
+                std::string s;
                 // use base 0, so that 0xabc is correctly parsed as a hex number
-                const std::intmax_t int_data = std::stoll( int_str, nullptr, 0 );
-
+                
                 auto maybe_write_integer = [&]< typename signed_type, typename unsigned_type >
-                                        ( std::string_view a_signed_name, std::string_view a_unsigned_name )
+                ( std::string_view a_signed_name, std::string_view a_unsigned_name )
                 {
                     if( line.starts_with( a_signed_name ) )
-                        write< signed_type >( *output, static_cast< signed_type >( int_data ) );
+                    {
+                        while( std::getline( str, s, ' ' ) )
+                        {
+                            const std::intmax_t int_data = std::stoll( s, nullptr, 0 );
+                            write< signed_type >( *output, static_cast< signed_type >( int_data ) );
+                        }
+                    }
                     else if( line.starts_with( a_unsigned_name ) )
-                        write< unsigned_type >( *output, static_cast< unsigned_type >( int_data ) );
+                    {
+                        while( std::getline( str, s, ' ' ) )
+                        {
+                            const std::uintmax_t int_data = std::stoull( s, nullptr, 0 );
+                            write< unsigned_type >( *output, static_cast< unsigned_type >( int_data ) );
+                        }
+                    }
                 };
                 // yes, this IS the syntax for calling a templated lambda with explicit template arguments...
                 maybe_write_integer.operator()< std::int8_t, std::uint8_t >( "int8", "uint8" );
@@ -222,9 +235,14 @@ namespace
             }
             else if( line.starts_with( "float32=" ) )
             {
-                const auto float_str = line.substr( line.find( "=" ) + 1 );
-                const float float_data = std::stof( float_str );
-                write< float >( *output, float_data );
+                const auto data = line.substr( line.find( "=" ) + 1 );
+                std::istringstream str{data};
+                std::string s;
+                while( std::getline( str, s, ' ' ) )
+                {
+                    const float float_data = std::stof( s );
+                    write< float >( *output, float_data );
+                }
             }
             else if( line.starts_with( "pad=" ) )
             {
