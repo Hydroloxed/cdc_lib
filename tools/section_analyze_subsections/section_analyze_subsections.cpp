@@ -29,7 +29,8 @@ std::optional< std::string > get_string_at( score::binary_io::input_interface& a
     {
         return !a_string.empty() &&
                 std::ranges::all_of( a_string.substr( 0, a_string.size() ), 
-                                    []( char a_c ) { return std::isprint( a_c ) || std::isspace( a_c ); } );
+                                    []( char a_c ) { return std::isprint( static_cast< unsigned char >( a_c ) )
+                                                         || std::isspace( static_cast< unsigned char >( a_c ) ); } );
     };  
     // some strings are terminated with MULTIPLE null bytes
     // if the next struct needs to be aligned
