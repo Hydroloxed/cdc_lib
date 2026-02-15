@@ -210,21 +210,30 @@ namespace
                 auto maybe_write_integer = [&]< typename signed_type, typename unsigned_type >
                 ( std::string_view a_signed_name, std::string_view a_unsigned_name )
                 {
-                    if( line.starts_with( a_signed_name ) )
+                    try
                     {
-                        while( std::getline( str, s, ' ' ) )
+                        if( line.starts_with( a_signed_name ) )
                         {
-                            const std::intmax_t int_data = std::stoll( s, nullptr, 0 );
-                            write< signed_type >( *output, static_cast< signed_type >( int_data ) );
+                            while( std::getline( str, s, ' ' ) )
+                            {
+                                const std::intmax_t int_data = std::stoll( s, nullptr, 0 );
+                                write< signed_type >( *output, static_cast< signed_type >( int_data ) );
+                            }
+                        }
+                        else if( line.starts_with( a_unsigned_name ) )
+                        {
+                            while( std::getline( str, s, ' ' ) )
+                            {
+                                const std::uintmax_t int_data = std::stoull( s, nullptr, 0 );
+                                write< unsigned_type >( *output, static_cast< unsigned_type >( int_data ) );
+                            }
                         }
                     }
-                    else if( line.starts_with( a_unsigned_name ) )
+                    catch( std::exception& e )
                     {
-                        while( std::getline( str, s, ' ' ) )
-                        {
-                            const std::uintmax_t int_data = std::stoull( s, nullptr, 0 );
-                            write< unsigned_type >( *output, static_cast< unsigned_type >( int_data ) );
-                        }
+                        fmt::print( stderr, "{}\n", line );
+                        fmt::print( stderr, "ERROR: {}\n", e.what() );
+                        throw;
                     }
                 };
                 // yes, this IS the syntax for calling a templated lambda with explicit template arguments...
