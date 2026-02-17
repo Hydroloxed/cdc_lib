@@ -1,0 +1,69 @@
+#include "sdef_parse.h"
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <tinyxml2.h>
+
+namespace cdc_lib::sdef
+{
+    namespace
+    {
+        bool check_type( tinyxml2::XMLElement* a_xml_node, std::string_view a_name )
+        {
+            assert( a_xml_node );
+
+            const auto comp_ci = []( char a_a, char a_b ) -> bool
+            {
+                return std::tolower( static_cast< unsigned char >( a_a ) )
+                    == std::tolower( static_cast< unsigned char >( a_b ) );
+            };
+
+            const auto name = std::string{a_xml_node->Name()};
+            return std::ranges::equal( name, a_name, comp_ci );
+        }
+
+        std::optional< std::string> get_string_attr( tinyxml2::XMLElement* a_xml_node,
+                                                     const char* a_name )
+        {
+            assert( a_xml_node );
+
+            const char* value = nullptr;
+            if( a_xml_node->QueryStringAttribute( a_name, &value ) )
+                return value;
+            return std::nullopt;
+        }
+
+        void do_subtree( tinyxml2::XMLElement* a_xml_node, sdef_node& a_node )
+        {
+            if( check_type( a_xml_node, "struct" ) )
+            {
+                a_node.data = sdef_struct{};
+                a_node.as_struct().name = get_string_attr( a_xml_node, "name" ).value();
+            }
+            for( auto* child = a_xml_node->FirstChildElement();
+                 child;
+                 child = child->NextSiblingElement() )
+            {
+                a_node.children.push_back( std::make_unique< sdef_node >( &a_node ) );
+                auto& new_node = *a_node.children.back();
+                do_subtree( child, new_node );
+            }
+        }
+    }
+
+    sdef_node parse_sdef( const std::string& a_sdef_file_data )
+    {
+        tinyxml2::XMLDocument doc;
+        doc.Parse( a_sdef_file_data.c_str() );
+        sdef_node root{nullptr};
+        if( doc.FirstChildElement() == nullptr
+         && doc.FirstChildElement()->NextSiblingElement() )
+            throw std::runtime_error{"You must have exactly one root element"};
+        do_subtree( doc.FirstChildElement(), root );
+        return root;
+    }
+}
