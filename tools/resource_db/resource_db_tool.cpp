@@ -353,6 +353,7 @@ namespace operation_find
                     assert( false && "what the hell did you do" );
             }
             assert( false );
+            return false;
         } );
     }
 
