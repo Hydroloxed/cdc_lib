@@ -16,6 +16,7 @@ Checks: >
     -hicpp-uppercase-literal-suffix,
     llvm-include-order,
     misc-*,
+    -misc-no-recursion,
     modernize-*,
     -modernize-use-trailing-return-type,
     performance-*,
