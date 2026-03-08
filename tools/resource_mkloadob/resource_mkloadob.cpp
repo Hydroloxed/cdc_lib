@@ -273,6 +273,8 @@ namespace
             {
                 fmt::print( "{}", line );
                 fmt::print( stderr, "ERROR: unrecognized line '{}'\n", line );
+                for( const auto& c : line )
+                    fmt::print( stderr, "{:x}\n", c );
                 return std::nullopt;
             }
         }
@@ -317,10 +319,8 @@ try
     }
     const auto input_filename = result["input"].as< std::string >();
     std::ifstream input_file{input_filename};
-    // input_file.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-    const auto input_size = std::filesystem::file_size( input_filename );
-    std::string input_data( input_size, '\0'  );
-    input_file.read( input_data.data(), static_cast< std::streamsize >( input_size ) );
+    input_file.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
+    std::string input_data( std::istreambuf_iterator{input_file}, {} );
 
     if( auto loadob_f = load( input_data ) )
     {
