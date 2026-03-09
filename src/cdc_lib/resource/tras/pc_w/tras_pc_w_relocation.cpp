@@ -64,7 +64,6 @@ namespace cdc_lib::resource::tras::pc_w
         };
         auto read_extern_ptr = [&a_input_interface, data_offset]()
         {
-
             const auto packed = read< std::uint64_t >( a_input_interface );
             const auto pointer_offset = score::get_bits( packed, k_extern_ptr_pointer_offset_range ) * 4;
             const auto packed_resource_guid = [&a_input_interface, pointer_offset, data_offset]()
@@ -75,6 +74,9 @@ namespace cdc_lib::resource::tras::pc_w
                 a_input_interface.seek( old_stream_position );
                 return read_val;
             }();
+            // NOTE: The GUID can be any uint32, not just a id + type.
+            // TODO: The resource should really be looked up in the DRM/DB.
+            //       So, provide a callback parameter like the game's ResolveTypeAndId.
             const auto resource_id = score::get_bits( packed_resource_guid, k_resource_guid_id_range );
             const auto resource_type = score::get_bits( packed_resource_guid, k_resource_guid_type_range );
             return cooked_relocation
@@ -103,6 +105,12 @@ namespace cdc_lib::resource::tras::pc_w
                 a_input_interface.seek( old_stream_position );
                 return read_val;
             }();
+            // This is assert is valid only if we're assuming `resource_id == rtr_id`...
+            // But code (https://sourcevc.intra.hydrolox.me/Hydrolox/tras_src/src/branch/main/cdc/runtime/cdcResource/TigerSectionLoader.cpp#L648)
+            // uses FindResource() here, and the whole point of ResourceID16 is
+            // to fit a resource id > 16 bits into a RTRID of 16 bits...
+            // Ugh... Whatever, this reloc type aren't used anyway...
+            assert( resource_id_high == 0 ); 
             const auto resource_id = (resource_id_high << 16u) | resource_id_low;
             return cooked_relocation
             {
@@ -118,8 +126,7 @@ namespace cdc_lib::resource::tras::pc_w
             // the top bit is used to express whether the pointer is optional
             // if so, it will be set to null if resource id wasn't found at runtime
             // otherwise, it will assert
-            // Source: cdc\runtime\cdcResource\TigerSectionLoader.cpp
-            // Lines 673...685
+            // Source: (https://sourcevc.intra.hydrolox.me/Hydrolox/tras_src/src/branch/main/cdc/runtime/cdcResource/TigerSectionLoader.cpp#L673-L687)
             constexpr std::uint32_t k_resource_id_mask = 0x7fffffffu;
             [[maybe_unused]] constexpr std::uint32_t k_resource_id_unknown_bit_mask = 0x80000000u;
             const auto packed = read< std::uint32_t >( a_input_interface );
@@ -131,7 +138,6 @@ namespace cdc_lib::resource::tras::pc_w
                 a_input_interface.seek( data_offset + resource_id_offset );
                 const auto read_val = read< std::uint32_t >( a_input_interface );
                 a_input_interface.seek( old_stream_position );
-                // assert( (read_val & k_resource_id_unknown_bit_mask) == 0 ); - TODO, can happen, needs investigation
                 return read_val & k_resource_id_mask;
             }();
             return cooked_relocation
