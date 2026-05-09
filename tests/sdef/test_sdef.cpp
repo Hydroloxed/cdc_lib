@@ -43,7 +43,7 @@ boost::ut::suite< "sdef" > sdef = []
         expect( sdef_tree.children.size() == 1 );
         expect( sdef_tree.children[0]->is_var() );
         expect( sdef_tree.children[0]->as_var().name == "SomeVar" );
-        expect( sdef_tree.children[0]->as_var().type.type == "int" );
+        expect( sdef_tree.children[0]->as_var().type.type_name == "int" );
     };
 
     test( "a var needs a name and a type" ) = []
@@ -51,5 +51,25 @@ boost::ut::suite< "sdef" > sdef = []
         expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<struct name="SomeSuperStruct"><var /></struct>)" ); } ) );
         expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<struct name="SomeSuperStruct"><var name="SomeVar" /></struct>)" ); } ) );
         expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<struct name="SomeSuperStruct"><var type="SomeType" /></struct>)" ); } ) );
+    };
+
+    test( "variables can have primitive types" ) = []
+    {
+        using namespace cdc_lib::sdef;
+        const std::vector types = {std::pair{"bool8", sdef_primitive_type::bool8},
+                                   std::pair{"int8", sdef_primitive_type::int8},
+                                   std::pair{"uint8", sdef_primitive_type::uint8},
+                                   std::pair{"int16", sdef_primitive_type::int16},
+                                   std::pair{"uint16", sdef_primitive_type::uint16},
+                                   std::pair{"int32", sdef_primitive_type::int32},
+                                   std::pair{"uint32", sdef_primitive_type::uint32},
+                                   std::pair{"float32", sdef_primitive_type::float32}};
+        for( const auto& [type, primitive_type] : types )
+        {
+            std::string sdef_str = std::string{R"(<struct name="SomeSuperStruct"><var name="SomeVar" type=")"} + type + R"(" /></struct>)";
+            std::printf("%s\n", sdef_str.c_str());
+            const auto sdef_tree = parse_sdef( sdef_str );
+            expect( sdef_tree.children[0]->as_var().type.primitive_type == primitive_type );
+        }
     };
 };

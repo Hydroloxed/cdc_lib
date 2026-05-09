@@ -37,6 +37,18 @@ namespace cdc_lib::sdef
             return std::nullopt;
         }
 
+        sdef_primitive_type get_primitive_type( std::string_view a_type )
+        {
+            if( a_type == "int8" ) return sdef_primitive_type::int8;
+            if( a_type == "uint8" ) return sdef_primitive_type::uint8;
+            if( a_type == "int16" ) return sdef_primitive_type::int16;
+            if( a_type == "uint16" ) return sdef_primitive_type::uint16;
+            if( a_type == "int32" ) return sdef_primitive_type::int32;
+            if( a_type == "uint32" ) return sdef_primitive_type::uint32;
+            if( a_type == "float32" ) return sdef_primitive_type::float32;
+            return sdef_primitive_type::none;
+        }
+
         void do_subtree( tinyxml2::XMLElement* a_xml_node, sdef_node& a_node )
         {
             if( check_type( a_xml_node, "struct" ) )
@@ -50,6 +62,7 @@ namespace cdc_lib::sdef
                 a_node.as_var().name = get_string_attr( a_xml_node, "name" ).value();
                 const auto type = sdef_type_ref{get_string_attr( a_xml_node, "type" ).value()};
                 a_node.as_var().type = type;
+                a_node.as_var().type.primitive_type = get_primitive_type( a_node.as_var().type.type_name );
             }
             for( auto* child = a_xml_node->FirstChildElement();
                  child;
