@@ -32,7 +32,7 @@ namespace cdc_lib::sdef
             assert( a_xml_node );
 
             const char* value = nullptr;
-            if( a_xml_node->QueryStringAttribute( a_name, &value ) )
+            if( a_xml_node->QueryStringAttribute( a_name, &value ) == tinyxml2::XML_SUCCESS )
                 return value;
             return std::nullopt;
         }
