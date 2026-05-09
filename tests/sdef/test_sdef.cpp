@@ -67,9 +67,8 @@ boost::ut::suite< "sdef" > sdef = []
         for( const auto& [type, primitive_type] : types )
         {
             std::string sdef_str = std::string{R"(<struct name="SomeSuperStruct"><var name="SomeVar" type=")"} + type + R"(" /></struct>)";
-            std::printf("%s\n", sdef_str.c_str());
             const auto sdef_tree = parse_sdef( sdef_str );
-            expect( sdef_tree.children[0]->as_var().type.primitive_type == primitive_type );
+            expect( sdef_tree.children[0]->as_var().type.primitive_type == primitive_type ) << type;
         }
     };
 };
