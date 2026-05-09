@@ -44,6 +44,13 @@ namespace cdc_lib::sdef
                 a_node.data = sdef_struct{};
                 a_node.as_struct().name = get_string_attr( a_xml_node, "name" ).value();
             }
+            else if( check_type( a_xml_node, "var" ) )
+            {
+                a_node.data = sdef_var{};
+                a_node.as_var().name = get_string_attr( a_xml_node, "name" ).value();
+                const auto type = sdef_type_ref{get_string_attr( a_xml_node, "type" ).value()};
+                a_node.as_var().type = type;
+            }
             for( auto* child = a_xml_node->FirstChildElement();
                  child;
                  child = child->NextSiblingElement() )
