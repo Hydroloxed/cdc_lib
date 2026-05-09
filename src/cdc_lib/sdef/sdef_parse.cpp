@@ -39,6 +39,7 @@ namespace cdc_lib::sdef
 
         sdef_primitive_type get_primitive_type( std::string_view a_type )
         {
+            if( a_type == "bool8" ) return sdef_primitive_type::bool8;
             if( a_type == "int8" ) return sdef_primitive_type::int8;
             if( a_type == "uint8" ) return sdef_primitive_type::uint8;
             if( a_type == "int16" ) return sdef_primitive_type::int16;
