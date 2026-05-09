@@ -81,7 +81,7 @@ namespace cdc_lib::sdef
         doc.Parse( a_sdef_file_data.c_str() );
         sdef_node root{nullptr};
         if( doc.FirstChildElement() == nullptr
-         && doc.FirstChildElement()->NextSiblingElement() )
+         || doc.FirstChildElement()->NextSiblingElement() == nullptr )
             throw std::runtime_error{"You must have exactly one root element"};
         do_subtree( doc.FirstChildElement(), root );
         return root;
