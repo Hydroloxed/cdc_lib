@@ -326,6 +326,7 @@ namespace operation_find
             case filter_by::reloc_table_size:
                 return perform_op( section_data.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.compare );
             case filter_by::none:
+                throw std::runtime_error{"Invalid filter."};
         }
         throw std::runtime_error{"Invalid filter."};
     }
