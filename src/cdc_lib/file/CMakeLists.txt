@@ -22,10 +22,11 @@ if( NOT ZLIB_FOUND )
     FetchContent_Declare( zlib
       GIT_REPOSITORY https://github.com/madler/zlib.git )
     FetchContent_MakeAvailable( zlib )
+    set( ZLIB_LIBRARIES zlibstatic )
 endif()
 
 
 target_compile_features( cdc_lib_file PUBLIC cxx_std_20 )
 target_include_directories( cdc_lib_file PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ )
-target_link_libraries( cdc_lib_file PRIVATE cdc_lib_core fmt zlibstatic  )
+target_link_libraries( cdc_lib_file PRIVATE cdc_lib_core fmt ${ZLIB_LIBRARIES} )
 target_compile_definitions( cdc_lib_file PRIVATE ZLIB_CONST )
