@@ -12,6 +12,7 @@
 #include <fstream>
 #include <ranges>
 #include <score/binary_io/binary_io.h>
+#include <score/binary_io/binio_strings.h>
 #include <score/containers/simple_lookup_table.h>
 
 namespace
@@ -541,6 +542,67 @@ namespace operation_make_dtp_filelist
     }
 }
 
+namespace operation_make_wave_idmap
+{
+    constexpr std::uint32_t k_resource_type_soundplex = 0xd;
+    
+    int run( int a_argc, char** a_argv )
+    {
+        cxxopts::Options options( "resource_db", "Generate waves.ids" );
+        options.add_options()
+            ( "operation", "The operation to perform", cxxopts::value< std::string >() )
+            ( "f,file", "The resource db file to use", cxxopts::value< std::string >() )
+            ( "gamedir", "The game directory", cxxopts::value< std::string >() )
+            ( "h,help", "Print help" );
+        options.parse_positional( {"operation", "file", "gamedir"} );
+        options.positional_help( "<file>" );
+        auto result = options.parse( a_argc, a_argv );
+        if( result.count( "help" ) != 0 )
+        {
+            fmt::print( "{}\n", options.help() );
+            return EXIT_FAILURE;
+        }
+        auto db = load_db( result["file"].as< std::string >() );
+        db.init_archive_from_gamedir( result["gamedir"].as< std::string >() );
+        db.add_resource_references();
+
+        std::vector< cdc_lib::resource::resource* > waves;
+        for( auto& section : db.iterate_resources() )
+        {
+            if( section.second.get_section_metadata().type == cdc_lib::resource::cooked_resolve_section_type::wave )
+                waves.push_back( &section.second );
+        }
+        std::ranges::sort( waves, []( const auto& a_a, const auto& a_b ) { return a_a->guid().id < a_b->guid().id; } );
+
+        for( const auto& wave : waves )
+        {
+            const auto strip_drmname = []( std::string& a_string )
+            {
+                const auto pos = a_string.find( ".drm" );
+                if( pos != std::string::npos )
+                    a_string = a_string.substr( 0, pos );
+                if( a_string.starts_with( "pc-w\\" ) )
+                    a_string = a_string.substr( 5 );
+            };
+            wave->load_sync();
+            const auto data = wave->get_raw_data().value();
+            auto ii = score::binary_io::create_input_interface( data );
+            constexpr std::size_t k_name_offset = 0x42;
+            ii->seek( k_name_offset );
+            auto name = score::binary_io::read_c_string( *ii );
+            fmt::print( "{},{}", wave->get_section_metadata().id, name );
+            for( const auto& ob : wave->get_referenced_by_objects() )
+            {
+                std::string name{ob->get_path().data(), ob->get_path().size()};
+                strip_drmname( name );
+                fmt::print( ",{}", name );
+            }
+            fmt::print( "\n" );
+        }
+        return EXIT_SUCCESS;
+    }
+}
+
 namespace operation_dump_sections_csv
 {
     int run( int a_argc, char** a_argv )
@@ -586,6 +648,7 @@ void show_global_help()
     fmt::print( "  find\n" );
     fmt::print( "  dump-sections-csv [section2csv]\n" );
     fmt::print( "  makedtplist\n" );
+    fmt::print( "  makewaveids\n" );
 }
 
 int main( int argc, char** argv )
@@ -608,6 +671,8 @@ try
         return operation_dump_sections_csv::run( argc, argv );
     if( operation == "makedtplist" )
         return operation_make_dtp_filelist::run( argc, argv );
+    if( operation == "makewaveids" )
+        return operation_make_wave_idmap::run( argc, argv );
 
     show_global_help();
     return EXIT_FAILURE;
