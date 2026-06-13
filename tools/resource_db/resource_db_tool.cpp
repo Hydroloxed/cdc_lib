@@ -228,7 +228,7 @@ namespace operation_find
     struct filter
     {
         filter_by by{};
-        comparison comparison{};
+        comparison compare{};
         std::uint32_t value{};
     };
 
@@ -308,21 +308,21 @@ namespace operation_find
         switch( a_filter.by )
         {
             case filter_by::id:
-                return perform_op( section_data.id, a_filter.value, a_filter.comparison );
+                return perform_op( section_data.id, a_filter.value, a_filter.compare );
             case filter_by::resource_type:
-                return perform_op( section_data.resource_type, static_cast< std::uint8_t >( a_filter.value ), a_filter.comparison );
+                return perform_op( section_data.resource_type, static_cast< std::uint8_t >( a_filter.value ), a_filter.compare );
             case filter_by::section_type:
                 return perform_op( section_data.type,
                                    static_cast< cdc_lib::resource::cooked_resolve_section_type >( a_filter.value ),
-                                   a_filter.comparison );
+                                   a_filter.compare );
             case filter_by::refs:
                 return perform_op( a_resource.get_referenced_by_objects().size(),
                                    static_cast< std::size_t >( a_filter.value ),
-                                   a_filter.comparison );
+                                   a_filter.compare );
             case filter_by::size:
-                return perform_op( section_data.size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
+                return perform_op( section_data.size, static_cast< std::size_t >( a_filter.value ), a_filter.compare );
             case filter_by::reloc_table_size:
-                return perform_op( section_data.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.comparison );
+                return perform_op( section_data.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.compare );
             case filter_by::none:
                 throw std::runtime_error{"Invalid filter."};
         }
