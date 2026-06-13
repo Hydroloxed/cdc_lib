@@ -35,6 +35,7 @@ namespace
             case cdc_lib::resource::cooked_resolve_section_type::collision_mesh: return "collision_mesh";
         }
         assert( false );
+        return "";
     }
     [[nodiscard]] cdc_lib::resource::cooked_resolve_section_type
         string_to_section_type( const std::string& a_string )
@@ -246,6 +247,7 @@ namespace operation_find
             case comparison::greater_than:
                 return a_lhs > a_rhs;
         }
+        throw std::runtime_error{"Unknown comparison"};
     }
 
     constexpr score::simple_lookup_table< std::string_view, filter_by, 6 > k_filter_by_lookup =
@@ -324,8 +326,8 @@ namespace operation_find
             case filter_by::reloc_table_size:
                 return perform_op( section_data.relocation_table_size, static_cast< std::size_t >( a_filter.value ), a_filter.compare );
             case filter_by::none:
-                throw std::runtime_error{"Invalid filter."};
         }
+        throw std::runtime_error{"Invalid filter."};
     }
 
     void sort( std::vector< const cdc_lib::resource::resource* >& a_sections, filter_by a_sort_by )
