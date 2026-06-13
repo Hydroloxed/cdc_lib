@@ -58,16 +58,16 @@ namespace cdc_lib::resource::tras::pc_w
     {
         auto object = std::make_unique< cooked_resolve_object >();
 
-        auto version = read< std::uint32_t >( a_input_interface );
+        [[maybe_unused]] auto version = read< std::uint32_t >( a_input_interface );
         assert( version == k_version ); // TODO: throw exception
         const auto include_length  = read< std::uint32_t >( a_input_interface );
         const auto depends_length  = read< std::uint32_t >( a_input_interface );
-        const auto padding_length  = read< std::uint32_t >( a_input_interface );
+        [[maybe_unused]] const auto padding_length  = read< std::uint32_t >( a_input_interface );
         assert( padding_length == 0 ); // not yet supported
         [[maybe_unused]] const auto projected_size  = read< std::uint32_t >( a_input_interface );
         // assert( projected_size == 0 ); - TODO(logging): this can actually happen
         // we should probably encourage the user to report this somewhere!
-        const auto flags           = read< std::uint32_t >( a_input_interface );
+        [[maybe_unused]] const auto flags           = read< std::uint32_t >( a_input_interface );
         assert( flags == 0 ); // also not known to happen with non-debug data
         const auto section_count   = read< std::uint32_t >( a_input_interface );
         assert( section_count < (1u << 16u) ); // maximum number of sections supported by the game
@@ -109,7 +109,7 @@ namespace cdc_lib::resource::tras::pc_w
         {
             const auto unique_id = read< std::uint32_t >( a_input_interface );
             const auto unique_id_id = score::get_bits( unique_id, k_section_extra_info_bit_range_unique_id_id );
-            const auto unique_id_type = score::get_bits( unique_id, k_section_extra_info_bit_range_unique_id_type );
+            [[maybe_unused]] const auto unique_id_type = score::get_bits( unique_id, k_section_extra_info_bit_range_unique_id_type );
             if( section.id == 0 )
                 section.id = unique_id_id;
             else
