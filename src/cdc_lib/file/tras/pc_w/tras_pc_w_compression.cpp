@@ -51,7 +51,7 @@ namespace cdc_lib::file::tras::pc_w
                     stream.zalloc = Z_NULL;
                     stream.zfree = Z_NULL;
                     stream.opaque = Z_NULL;
-                    int result = inflateInit( &stream );
+                    [[maybe_unused]] int result = inflateInit( &stream );
                     assert( result == Z_OK );
                     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.next_in = reinterpret_cast< const unsigned char* >( a_compressed.data() );
