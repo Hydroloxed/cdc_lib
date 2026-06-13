@@ -271,7 +271,7 @@ namespace cdc_lib::render::tras::pc_w
             a_istream.read( std::as_writable_bytes( std::span{resource_name} ) );
             return resource_name;
         }();
-        const auto magic = read< std::uint32_t >( a_istream );
+        [[maybe_unused]] const auto magic = read< std::uint32_t >( a_istream );
         assert( magic == k_magic );
         for( std::uint32_t i = 0; i < material_data::k_max_passes; i++ )
         {
