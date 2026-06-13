@@ -18,7 +18,7 @@ boost::ut::suite suite_reloc_input_stream = []
             "\xBB\xBB\xBB\xBB" // 08 - pointer dest
         "\x00\x00\x00\x00" // 0C - null pointer
     ;
-    auto input_interface = score::binary_io::create_input_interface( {sample_data, sizeof sample_data}, 0, std::endian::little );
+    auto input_interface = score::binary_io::create_input_interface( {sample_data, sizeof sample_data}, std::endian::little );
     auto relocations = std::array< cdc_lib::resource::cooked_relocation, 1 >
     {
         cdc_lib::resource::cooked_relocation{.src_ptr_offset = 0x4, .dest_ptr_offset = 0x8}
