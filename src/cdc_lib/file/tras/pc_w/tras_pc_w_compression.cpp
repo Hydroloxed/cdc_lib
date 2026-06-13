@@ -51,7 +51,8 @@ namespace cdc_lib::file::tras::pc_w
                     stream.zalloc = Z_NULL;
                     stream.zfree = Z_NULL;
                     stream.opaque = Z_NULL;
-                    assert( inflateInit( &stream ) == Z_OK );
+                    int result = inflateInit( &stream );
+                    assert( result == Z_OK );
                     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.next_in = reinterpret_cast< const unsigned char* >( a_compressed.data() );
                     stream.avail_in = a_block.uncompressed_size;
@@ -61,7 +62,8 @@ namespace cdc_lib::file::tras::pc_w
                     stream.avail_out = a_block.uncompressed_size;
 
                     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                    assert( inflate( &stream, Z_FINISH ) == Z_STREAM_END );
+                    result = inflate( &stream, Z_NO_FLUSH );
+                    assert( result == Z_STREAM_END );
                     // assert( stream.avail_in == 0 );
                     assert( stream.avail_out == 0 );
                     assert( stream.total_out == a_block.uncompressed_size );
@@ -101,7 +103,7 @@ namespace cdc_lib::file::tras::pc_w
 
         assert( a_input.tell() % k_block_alignment == 0 && "we assume that CDRM files are aligned" );
         skip_bytes< 4 >( a_input );
-        const auto version = read< std::uint32_t >( a_input );
+        [[maybe_unused]] const auto version = read< std::uint32_t >( a_input );
         assert( version == k_version );
         const auto block_count = read< std::uint32_t >( a_input );
         auto padding_bytes_count = read< std::uint32_t >( a_input );
@@ -137,7 +139,7 @@ namespace cdc_lib::file::tras::pc_w
         }
         try
         {
-            std::string next_magic = read_fixed_string( a_input, 4 );
+            [[maybe_unused]] std::string next_magic = read_fixed_string( a_input, 4 );
             assert( next_magic == k_next_magic );
         }
         catch( ... )
