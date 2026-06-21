@@ -21,6 +21,14 @@ suite< "core_crc32" > core_crc32 = []
         expect( crc32( "123456789") == 0xfc891918 );
     };
 
+    test( "same result when we use bytes and strings" ) = []
+    {
+        const std::string_view sample_string = "123456789";
+        const std::span< const std::byte > sample_bytes =
+            std::as_bytes( std::span{sample_string.data(), sample_string.size()} );
+        expect( crc32( sample_string ) == crc32( sample_bytes ) );
+    };
+
     test( "same as what cdc uses" ) = []
     {
         expect( crc32( "pc-w\\fishing_rig.drm" ) == 0xb46bc2fe );
