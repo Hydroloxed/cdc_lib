@@ -66,7 +66,6 @@ namespace cdc_lib::core
         }
         return ~result;
     }
-    static_assert( 0xB46BC2FE == crc32( "pc-w\\fishing_rig.drm" ) );
     // NOLINTEND(readability-magic-numbers, cppcoreguidelines-pro-bounds-constant-array-index)
 }
 

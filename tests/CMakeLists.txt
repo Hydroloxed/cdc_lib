@@ -7,6 +7,7 @@ FetchContent_Declare( ut
 FetchContent_MakeAvailable( ut )
 
 target_sources( cdc_lib_tests PRIVATE
+    core/test_crc32.cpp
     resource/test_reloc_input_stream.cpp
     sdef/test_sdef.cpp
     run_tests.cpp )
