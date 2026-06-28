@@ -8,6 +8,7 @@ FetchContent_MakeAvailable( ut )
 
 target_sources( cdc_lib_tests PRIVATE
     core/test_crc32.cpp
+    file/test_compression.cpp
     resource/test_reloc_input_stream.cpp
     sdef/test_sdef.cpp
     run_tests.cpp )
