@@ -5,8 +5,6 @@
 #include <score/binary_io/binary_io.h>
 #include <type_traits>
 
-// NOLINTBEGIN(readability-magic-numbers)
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 boost::ut::suite suite_reloc_input_stream = []
 {
     using namespace boost::ut;
@@ -52,4 +50,3 @@ boost::ut::suite suite_reloc_input_stream = []
         expect( subsections[0].start_offset == 0x8 );
     };
 };
-// NOLINTEND(readability-magic-numbers)
