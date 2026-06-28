@@ -1,0 +1,2 @@
+InheritParentConfig: true
+Checks: -readability-magic-numbers, -misc-use-internal-linkage, -cppcoreguidelines-avoid-non-const-global-variables, -cppcoreguidelines-avoid-c-arrays
