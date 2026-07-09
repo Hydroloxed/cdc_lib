@@ -1,0 +1,18 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+FixNamespaceComments: true
+ShortNamespaceLines: 0
+BreakBeforeBraces: Allman
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: false
+  AfterForeachMacros: false
+  AfterFunctionDeclarationName: false
+  AfterFunctionDefinitionName: false
+  AfterIfMacros: false
+  AfterNot: false
+  AfterOverloadedOperator: false
+  AfterPlacementOperator: false
+  AfterRequiresInClause: false
+  AfterRequiresInExpression: false
+  BeforeNonEmptyParentheses: false
