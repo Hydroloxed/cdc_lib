@@ -1,0 +1,40 @@
+The SDEF component is a data definition language, roughly corresponding to
+original CDC *.dtpinc files. SDEF is used only for data definitions (i.e. structs),
+never for actual data.
+
+SOBJs are used for data. The tree for an SOBJ closely follows its definition
+(SDEF)'s tree. Here's how their CDC equivalents look like:
+
+    [...]
+    <Item Name="87869B946401183_cp10">
+        <Item Name="Meta">
+            <Item Name="Pos" Value="-115.957794,309.110321"/>
+        </Item>
+        <Item Name="ActiongraphNode">
+            <Item Name="NodeType" Value="Misc_FrameTrigger"/>
+            <Item Name="ActiongraphNodeProperties">
+                <Item Name="m_enabled" Value="false"/>
+            </Item>
+        </Item>
+    </Item>
+    <Item Name="878617646401183_cp11">
+        <Item Name="Meta">
+            <Item Name="Pos" Value="-117.623779,279.358826"/>
+        </Item>
+        <Item Name="ActiongraphNode">
+            <Item Name="ActiongraphNodeProperties">
+                <Item Name="Desc" Value="Disabled:  for debugging"/>
+            </Item>
+        </Item>
+    </Item>
+    [...]
+    (Source: excerpt from TRAS_Nov16_2 laracroft.drm)
+
+Some assumptions about how CDC does stuff:
+ - The root "Item" contains the type (I think in CDC this would be called the "dtp")
+   of the root subsection, like:
+       <Item Name="ActionGraph" Type="ActionGraph">
+   This would make sense, given that for DATPath in gamegui links we have:
+       $<Link Caption=\"%s\" Category=\"dtp\" DATID=\"%s\" DATPath=\"ActionGraph.NodeList.%s\"/>$
+   Starting with "ActionGraph".
+
