@@ -68,9 +68,9 @@ namespace cdc_lib::resource::tras::pc_w
         // assert( projected_size == 0 ); - TODO(logging): this can actually happen
         // we should probably encourage the user to report this somewhere!
         [[maybe_unused]] const auto flags           = read< std::uint32_t >( a_input_interface );
-        assert( flags == 0 ); // also not known to happen with non-debug data
+        assert( flags == 0 && "Retail data should not have any flags set" );
         const auto section_count   = read< std::uint32_t >( a_input_interface );
-        assert( section_count < (1u << 16u) ); // maximum number of sections supported by the game
+        assert( section_count < (1u << 16u) && "Too many sections in this DRM (>UINT16_MAX)" ); // maximum number of sections supported by the game
         const auto primary_section = read< std::uint32_t >( a_input_interface );
         assert( primary_section < section_count || primary_section == k_no_primary_section );
 
