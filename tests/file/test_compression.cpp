@@ -28,16 +28,14 @@ suite< "file_compression" > file_compression = []
         expect( eq( decompress( data, sizeof data ), std::string{} ) );
     };
     
-    // FIXME: This should throw an exception, not assert()
-    skip / test( "exception thrown if wrong version" ) = []
+    test( "exception thrown if wrong version" ) = []
     {
         const char data[] =
             "CDRM" // magic
             "\1\2\3\4" // version
             "\0\0\0\0" // block count
             "\0\0\0\0"; // num padding bytes
-        // `aborts` doesn't exist on Windows
-        //expect( aborts( [&]{ decompress( data, sizeof data ); } ) );
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
     };
 
     // FIXME: Disabled for now, change compression.cpp to accept empty

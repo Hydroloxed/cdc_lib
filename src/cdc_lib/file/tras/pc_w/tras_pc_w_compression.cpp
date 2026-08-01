@@ -103,8 +103,9 @@ namespace cdc_lib::file::tras::pc_w
 
         assert( a_input.tell() % k_block_alignment == 0 && "we assume that CDRM files are aligned" );
         skip_bytes< 4 >( a_input );
-        [[maybe_unused]] const auto version = read< std::uint32_t >( a_input );
-        assert( version == k_version );
+        const auto version = read< std::uint32_t >( a_input );
+        if( version != k_version )
+            throw std::runtime_error{fmt::format( "Wrong CDRM version: was {:08x}, wanted {:08x}", version, k_version )};
         const auto block_count = read< std::uint32_t >( a_input );
         auto padding_bytes_count = read< std::uint32_t >( a_input );
         assert( padding_bytes_count == 0 ); // probably not used...
