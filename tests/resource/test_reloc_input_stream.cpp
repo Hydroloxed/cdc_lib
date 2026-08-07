@@ -5,7 +5,7 @@
 #include <score/binary_io/binary_io.h>
 #include <type_traits>
 
-boost::ut::suite suite_reloc_input_stream = []
+boost::ut::suite< "resource_reloc_input_stream" > suite_reloc_input_stream = []
 {
     using namespace boost::ut;
 
