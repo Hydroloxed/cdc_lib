@@ -10,7 +10,10 @@ target_sources( cdc_lib_sdef PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/sdef_node.h
     ${CMAKE_CURRENT_SOURCE_DIR}/sdef_parse.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sdef_parse.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/sdef_type.h )
+    ${CMAKE_CURRENT_SOURCE_DIR}/sdef_type.h
+    sobj_node.h
+    sobj_parse.cpp
+    sobj_parse.h )
 
 include( FetchContent )
 FetchContent_Declare( tinyxml2

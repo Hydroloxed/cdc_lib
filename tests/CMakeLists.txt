@@ -11,5 +11,6 @@ target_sources( cdc_lib_tests PRIVATE
     file/test_compression.cpp
     resource/test_reloc_input_stream.cpp
     sdef/test_sdef.cpp
+    sdef/test_sobj.cpp
     run_tests.cpp )
 target_link_libraries( cdc_lib_tests PUBLIC cdc_lib Boost::ut )
