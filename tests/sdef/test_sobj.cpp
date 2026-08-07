@@ -33,7 +33,7 @@ boost::ut::suite< "sobj" > sobj = []
         auto streams = setup_stream( data );
         auto empty_struct_sdef = cdc_lib::sdef::parse_sdef( "<Struct name=\"EmptyStruct\" />" );
         auto sobj = cdc_lib::sdef::parse_sobj( &empty_struct_sdef, streams.ristream );
-        expect( eq(sobj.sdef_node, &empty_struct_sdef) );
+        expect( eq(sobj.sdef, &empty_struct_sdef) );
         expect( eq(sobj.parent, nullptr) );
         expect( eq(sobj.children.size(), 0) );
     };
@@ -45,10 +45,10 @@ boost::ut::suite< "sobj" > sobj = []
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="uint8" /></Struct>)" );
         auto* sdef_var = sdef.children[0].get();
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        expect( eq(sobj.sdef_node, &sdef) );
+        expect( eq(sobj.sdef, &sdef) );
         expect( eq(sobj.parent, nullptr) );
         expect( eq(sobj.children.size(), 1) );
-        expect( eq(sobj.children[0]->sdef_node, sdef_var) );
+        expect( eq(sobj.children[0]->sdef, sdef_var) );
         expect( eq(sobj.children[0]->var_data.data, 0x01) );
         expect( eq(streams.ristream.tell(), 1) );
     };

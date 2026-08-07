@@ -16,7 +16,7 @@ namespace cdc_lib::sdef
 
     struct sobj_node
     {
-        sdef_node* sdef_node{nullptr}; //< Corresponding node in definition tree
+        sdef_node* sdef{nullptr}; //< Corresponding node in definition tree
         sobj_node* parent{nullptr};
         sobj_var var_data{};
         std::vector< std::unique_ptr< sobj_node > > children{};

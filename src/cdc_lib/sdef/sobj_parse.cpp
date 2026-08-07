@@ -10,7 +10,7 @@ namespace cdc_lib::sdef
                                    resource::reloc_istream& a_data )
         {
             sobj_node node{};
-            node.sdef_node = a_sdef;
+            node.sdef = a_sdef;
             node.parent = a_parent;
             if( a_sdef->is_struct() )
             {
