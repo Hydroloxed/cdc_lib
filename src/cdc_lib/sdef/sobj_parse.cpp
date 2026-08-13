@@ -29,12 +29,16 @@ namespace cdc_lib::sdef
                 {
                     case none: assert(false && "Compound types not supported"); break;
                     // TODO: Should support all the types we listed in sdef_primitive_type
-                    case uint8: node.var_data.data = read< std::uint8_t >(a_data); break;
-                    case uint16: node.var_data.data = read< std::uint16_t >(a_data); break;
-                    case uint32: node.var_data.data = read< std::uint32_t >(a_data); break;
-                    case int8: node.var_data.data = read< std::int8_t >(a_data); break;
-                    case int16: node.var_data.data = read< std::int16_t >(a_data); break;
-                    case int32: node.var_data.data = read< std::int32_t >(a_data); break;
+                    // clang-format off
+                    case uint8:  node.var_data.data = std::uintmax_t{read< std::uint8_t >(a_data)}; break;
+                    case uint16: node.var_data.data = std::uintmax_t{read< std::uint16_t >(a_data)}; break;
+                    case uint32: node.var_data.data = std::uintmax_t{read< std::uint32_t >(a_data)}; break;
+                    case uint64: node.var_data.data = std::uintmax_t{read< std::uint64_t >(a_data)}; break;
+                    case int8:   node.var_data.data = read< std::int8_t >(a_data); break;
+                    case int16:  node.var_data.data = read< std::int16_t >(a_data); break;
+                    case int32:  node.var_data.data = read< std::int32_t >(a_data); break;
+                    case int64:  node.var_data.data = read< std::int64_t >(a_data); break;
+                    // clang-format on
                     default: assert(false && "Unsupported primitive type"); break;
                 }
             }

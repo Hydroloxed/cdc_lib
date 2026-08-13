@@ -46,6 +46,8 @@ namespace cdc_lib::sdef
             if( a_type == "uint16" ) return sdef_primitive_type::uint16;
             if( a_type == "int32" ) return sdef_primitive_type::int32;
             if( a_type == "uint32" ) return sdef_primitive_type::uint32;
+            if( a_type == "int64" ) return sdef_primitive_type::int64;
+            if( a_type == "uint64" ) return sdef_primitive_type::uint64;
             if( a_type == "float32" ) return sdef_primitive_type::float32;
             return sdef_primitive_type::none;
         }

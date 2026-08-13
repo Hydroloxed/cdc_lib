@@ -2,6 +2,7 @@
 #define CDC_LIB_SDEF_SOBJ_NODE_H
 #include <cstdint>
 #include <memory>
+#include <variant>
 #include <vector>
 
 namespace cdc_lib::sdef
@@ -11,8 +12,13 @@ namespace cdc_lib::sdef
     struct sobj_var
     {
         // TODO: For now we only support ints...
-        // This should also be variant<intmax_t, uintmax_t>!
-        std::intmax_t data{};
+        std::variant<std::intmax_t, std::uintmax_t> data{};
+
+        bool is_int() const noexcept { return std::holds_alternative<std::intmax_t>(data); }
+        bool is_uint() const noexcept { return std::holds_alternative<std::uintmax_t>(data); }
+
+        std::intmax_t as_int() const { return std::get<std::intmax_t>(data); }
+        std::uintmax_t as_uint() const { return std::get<std::uintmax_t>(data); }
     };
 
     struct sobj_node

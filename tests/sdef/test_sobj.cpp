@@ -50,11 +50,9 @@ boost::ut::suite< "sobj" > sobj = []
         expect( eq(sobj.parent, nullptr) );
         expect( eq(sobj.children.size(), 1) );
         expect( eq(sobj.children[0]->sdef, sdef_var) );
-        expect( eq(sobj.children[0]->var_data.data, 0x01) );
+        expect( eq(sobj.children[0]->var_data.as_uint(), 0x01) );
         expect( eq(streams.ristream.tell(), 1) );
     };
-
-
 
     test( "can parse a uint16" ) = []
     {
@@ -62,7 +60,7 @@ boost::ut::suite< "sobj" > sobj = []
         auto streams = setup_stream( data );
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="uint16" /></Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        expect( eq(sobj.children[0]->var_data.data, std::numeric_limits<std::uint16_t>::max()) );
+        expect( eq(sobj.children[0]->var_data.as_uint(), std::numeric_limits<std::uint16_t>::max()) );
     };
 
     test( "can parse a uint32" ) = []
@@ -71,7 +69,16 @@ boost::ut::suite< "sobj" > sobj = []
         auto streams = setup_stream( data );
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="uint32" /></Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        expect( eq(sobj.children[0]->var_data.data, std::numeric_limits<std::uint32_t>::max()) );
+        expect( eq(sobj.children[0]->var_data.as_uint(), std::numeric_limits<std::uint32_t>::max()) );
+    };
+
+    test( "can parse a uint64" ) = []
+    {
+        const std::string data = "\xff\xff\xff\xff\xff\xff\xff\xff";
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="uint64" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_uint(), std::numeric_limits<std::uint64_t>::max()) );
     };
 
     test( "can parse a int8" ) = []
@@ -80,7 +87,7 @@ boost::ut::suite< "sobj" > sobj = []
         auto streams = setup_stream( data );
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="int8" /></Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        expect( eq(sobj.children[0]->var_data.data, -1) );
+        expect( eq(sobj.children[0]->var_data.as_int(), -1) );
     };
 
     test( "can parse a int16" ) = []
@@ -89,7 +96,7 @@ boost::ut::suite< "sobj" > sobj = []
         auto streams = setup_stream( data );
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="int16" /></Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        expect( eq(sobj.children[0]->var_data.data, -1) );
+        expect( eq(sobj.children[0]->var_data.as_int(), -1) );
     };
 
     test( "can parse a int32" ) = []
@@ -98,6 +105,15 @@ boost::ut::suite< "sobj" > sobj = []
         auto streams = setup_stream( data );
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="int32" /></Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        expect( eq(sobj.children[0]->var_data.data, -1) );
+        expect( eq(sobj.children[0]->var_data.as_int(), -1) );
+    };
+
+    test( "can parse a int32" ) = []
+    {
+        const std::string data = "\xff\xff\xff\xff\xff\xff\xff\xff";
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="int64" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_int(), -1) );
     };
 };

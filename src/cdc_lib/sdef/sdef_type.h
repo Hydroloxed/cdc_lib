@@ -14,6 +14,8 @@ namespace cdc_lib::sdef
         uint16,
         int32,
         uint32,
+        int64,
+        uint64,
         float32
     };
 
