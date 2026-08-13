@@ -136,7 +136,8 @@ namespace cdc_lib::file::tras::pc_w
         {
             std::string compressed = read_fixed_string( a_input, b.compressed_size );
             out_data += decompress( compressed, b );
-            align_to( a_input, k_block_alignment );
+            if( &b != &blocks.back() )
+                align_to( a_input, k_block_alignment );
         }
         try
         {
