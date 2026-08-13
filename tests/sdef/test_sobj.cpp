@@ -116,4 +116,31 @@ boost::ut::suite< "sobj" > sobj = []
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
         expect( eq(sobj.children[0]->var_data.as_int(), -1) );
     };
+
+    test( "can parse a bool8 - 1 is true" ) = []
+    {
+        const std::string data = "\x01";
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="bool8" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_bool(), true) );
+    };
+
+    test( "can parse a bool8 - 0 is false" ) = []
+    {
+        const std::string data = std::string{"\x00", 1};
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="bool8" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_bool(), false) );
+    };
+
+    test( "can parse a bool8 - other values are true" ) = []
+    {
+        const std::string data = "\x12";
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="bool8" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_bool(), true) );
+    };
 };

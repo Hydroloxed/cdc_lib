@@ -29,7 +29,12 @@ namespace cdc_lib::sdef
                 {
                     case none: assert(false && "Compound types not supported"); break;
                     // TODO: Should support all the types we listed in sdef_primitive_type
+
+                    // TODO: Should we check/warn if we read something other
+                    //       than 1 or 0? That would be a good chance to catch
+                    //       possible errors in SDEF definitions...
                     // clang-format off
+                    case bool8:  node.var_data.data = bool{read< std::uint8_t >(a_data) != 0}; break;
                     case uint8:  node.var_data.data = std::uintmax_t{read< std::uint8_t >(a_data)}; break;
                     case uint16: node.var_data.data = std::uintmax_t{read< std::uint16_t >(a_data)}; break;
                     case uint32: node.var_data.data = std::uintmax_t{read< std::uint32_t >(a_data)}; break;
