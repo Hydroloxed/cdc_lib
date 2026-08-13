@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <fmt/format.h>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -67,6 +68,10 @@ namespace cdc_lib::sdef
                 const auto type = sdef_type_ref{get_string_attr( a_xml_node, "type" ).value()};
                 a_node.as_var().type = type;
                 a_node.as_var().type.primitive_type = get_primitive_type( a_node.as_var().type.type_name );
+            }
+            else
+            {
+                throw std::runtime_error{fmt::format("Unknown element: '{}'", a_xml_node->Name())};
             }
             for( auto* child = a_xml_node->FirstChildElement();
                  child;
