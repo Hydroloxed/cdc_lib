@@ -63,7 +63,10 @@ boost::ut::suite< "sdef" > sdef = []
                                    std::pair{"uint16", sdef_primitive_type::uint16},
                                    std::pair{"int32", sdef_primitive_type::int32},
                                    std::pair{"uint32", sdef_primitive_type::uint32},
-                                   std::pair{"float32", sdef_primitive_type::float32}};
+                                   std::pair{"int64", sdef_primitive_type::int64},
+                                   std::pair{"uint64", sdef_primitive_type::uint64},
+                                   std::pair{"float32", sdef_primitive_type::float32},
+                                   std::pair{"float64", sdef_primitive_type::float64}};
         for( const auto& [type, primitive_type] : types )
         {
             std::string sdef_str = std::string{R"(<struct name="SomeSuperStruct"><var name="SomeVar" type=")"} + type + R"(" /></struct>)";
