@@ -12,7 +12,7 @@ FetchContent_Declare( fmt
 FetchContent_MakeAvailable( fmt )
 
 FetchContent_Declare( score 
-  GIT_REPOSITORY https://gitlab.com/Hydrolox/score.git )
+  GIT_REPOSITORY https://github.com/Hydroloxed/score.git )
 FetchContent_MakeAvailable( score )
 
 target_sources( cdc_lib_core INTERFACE
