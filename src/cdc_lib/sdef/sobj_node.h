@@ -1,5 +1,6 @@
 #ifndef CDC_LIB_SDEF_SOBJ_NODE_H
 #define CDC_LIB_SDEF_SOBJ_NODE_H
+#include <cstdint>
 #include <memory>
 #include <vector>
 
