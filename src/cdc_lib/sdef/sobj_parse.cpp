@@ -28,23 +28,23 @@ namespace cdc_lib::sdef
                 switch( var.type.primitive_type )
                 {
                     case none: assert(false && "Compound types not supported"); break;
-                    // TODO: Should support all the types we listed in sdef_primitive_type
-
                     // TODO: Should we check/warn if we read something other
                     //       than 1 or 0? That would be a good chance to catch
                     //       possible errors in SDEF definitions...
                     // clang-format off
-                    case bool8:  node.var_data.data = bool{read< std::uint8_t >(a_data) != 0}; break;
-                    case uint8:  node.var_data.data = std::uintmax_t{read< std::uint8_t >(a_data)}; break;
-                    case uint16: node.var_data.data = std::uintmax_t{read< std::uint16_t >(a_data)}; break;
-                    case uint32: node.var_data.data = std::uintmax_t{read< std::uint32_t >(a_data)}; break;
-                    case uint64: node.var_data.data = std::uintmax_t{read< std::uint64_t >(a_data)}; break;
-                    case int8:   node.var_data.data = read< std::int8_t >(a_data); break;
-                    case int16:  node.var_data.data = read< std::int16_t >(a_data); break;
-                    case int32:  node.var_data.data = read< std::int32_t >(a_data); break;
-                    case int64:  node.var_data.data = read< std::int64_t >(a_data); break;
+                    case bool8:   node.var_data.data = bool{read< std::uint8_t >(a_data) != 0}; break;
+                    case float32: node.var_data.data = read< float >(a_data); break;
+                    case float64: node.var_data.data = read< double >(a_data); break;
+                    case uint8:   node.var_data.data = std::uintmax_t{read< std::uint8_t >(a_data)}; break;
+                    case uint16:  node.var_data.data = std::uintmax_t{read< std::uint16_t >(a_data)}; break;
+                    case uint32:  node.var_data.data = std::uintmax_t{read< std::uint32_t >(a_data)}; break;
+                    case uint64:  node.var_data.data = std::uintmax_t{read< std::uint64_t >(a_data)}; break;
+                    case int8:    node.var_data.data = read< std::int8_t >(a_data); break;
+                    case int16:   node.var_data.data = read< std::int16_t >(a_data); break;
+                    case int32:   node.var_data.data = read< std::int32_t >(a_data); break;
+                    case int64:   node.var_data.data = read< std::int64_t >(a_data); break;
                     // clang-format on
-                    default: assert(false && "Unsupported primitive type"); break;
+                    default: assert(false && "Unsupported primitive type. Bug in parse_sobj"); break;
                 }
             }
             return node;

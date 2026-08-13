@@ -16,7 +16,8 @@ namespace cdc_lib::sdef
         uint32,
         int64,
         uint64,
-        float32
+        float32,
+        float64
     };
 
     struct sdef_type_ref

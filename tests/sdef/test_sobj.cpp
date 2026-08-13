@@ -143,4 +143,22 @@ boost::ut::suite< "sobj" > sobj = []
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
         expect( eq(sobj.children[0]->var_data.as_bool(), true) );
     };
+
+    test( "can parse a float32" ) = []
+    {
+        const std::string data = std::string{"\x00\x00\xf6\x42", 4};
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="float32" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_float32(), 123.0_d) );
+    };
+
+    test( "can parse a float64" ) = []
+    {
+        const std::string data = std::string{"\x00\x00\x00\x00\x00\xc0\x5e\x40", 8};
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="float64" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_float64(), 123.0_d) );
+    };
 };
