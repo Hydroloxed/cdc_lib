@@ -82,7 +82,11 @@ namespace cdc_lib::sdef
     sdef_node parse_sdef( const std::string& a_sdef_file_data )
     {
         tinyxml2::XMLDocument doc;
-        doc.Parse( a_sdef_file_data.c_str() );
+        const auto parse_error = doc.Parse( a_sdef_file_data.c_str() );
+        // TODO: More descriptive error message?
+        if( parse_error != tinyxml2::XML_SUCCESS )
+            throw std::runtime_error{std::string{"Parsing failed: "} + doc.ErrorStr()};
+
         sdef_node root{nullptr};
         if( doc.FirstChildElement() == nullptr
          || doc.FirstChildElement()->NextSiblingElement() != nullptr )

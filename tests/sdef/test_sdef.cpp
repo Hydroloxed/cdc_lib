@@ -11,6 +11,12 @@ boost::ut::suite< "sdef" > sdef = []
         expect( throws( []{ cdc_lib::sdef::parse_sdef( "" ); } ) );
     };
 
+    test( "rejects invalid xml" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( "<struct / \"" ); } ) );
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( "<struct name=\"abc\"></struct> < / \"" ); } ) );
+    };
+
     test( "can't have multiple root nodes" ) = []
     {
         expect( throws( []{ cdc_lib::sdef::parse_sdef( "<struct /><struct />" ); } ) );
