@@ -27,6 +27,13 @@ namespace cdc_lib::sdef
             return std::ranges::equal( name, a_name, comp_ci );
         }
 
+        void require_string_attr( tinyxml2::XMLElement* a_node, const char* a_name )
+        {
+            assert( a_node );
+            if( a_node->FindAttribute( a_name ) == nullptr )
+                throw std::runtime_error{fmt::format("Element '{}' is missing required attribute '{}'", a_node->Name(), a_name)};
+        }
+
         std::optional< std::string> get_string_attr( tinyxml2::XMLElement* a_xml_node,
                                                      const char* a_name )
         {
@@ -58,11 +65,16 @@ namespace cdc_lib::sdef
         {
             if( check_type( a_xml_node, "struct" ) )
             {
+                require_string_attr( a_xml_node, "name" );
+
                 a_node.data = sdef_struct{};
                 a_node.as_struct().name = get_string_attr( a_xml_node, "name" ).value();
             }
             else if( check_type( a_xml_node, "var" ) )
             {
+                require_string_attr( a_xml_node, "name" );
+                require_string_attr( a_xml_node, "type" );
+
                 a_node.data = sdef_var{};
                 a_node.as_var().name = get_string_attr( a_xml_node, "name" ).value();
                 const auto type = sdef_type_ref{get_string_attr( a_xml_node, "type" ).value()};
@@ -88,7 +100,6 @@ namespace cdc_lib::sdef
     {
         tinyxml2::XMLDocument doc;
         const auto parse_error = doc.Parse( a_sdef_file_data.c_str() );
-        // TODO: More descriptive error message?
         if( parse_error != tinyxml2::XML_SUCCESS )
             throw std::runtime_error{std::string{"Parsing failed: "} + doc.ErrorStr()};
 
