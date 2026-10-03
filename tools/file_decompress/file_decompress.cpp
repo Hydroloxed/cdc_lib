@@ -14,7 +14,7 @@ int main( int argc, char** argv )
     options.positional_help( "<input>" );
 
     auto result = options.parse( argc, argv );
-    if( argc < 2 || result.count("help") != 0 )
+    if( argc < 2 || result.contains("help") )
     {
         fmt::print( "{}\n", options.help() );
         return EXIT_FAILURE;
@@ -24,7 +24,7 @@ int main( int argc, char** argv )
     auto decompressed = cdc_lib::file::tras::pc_w::decompress_cdrm( *input_interface );
     const auto output_filename = [&]
     {
-        if( result.count("output") == 0 )
+        if( !result.contains("output") )
             return filename + "_decompressed.bin";
         return result["output"].as< std::string >();
     }();

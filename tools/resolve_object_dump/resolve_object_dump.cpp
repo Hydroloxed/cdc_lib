@@ -80,7 +80,7 @@ int main( int argc, char** argv )
     auto filter_pass = [&]( const cdc_lib::resource::cooked_resolve_section& a_section )
     {
         bool passed = true;
-        if( result.count( "filter-type") != 0u )
+        if( result.contains( "filter-type") )
         {
             const auto filter_type = static_cast< cdc_lib::resource::cooked_resolve_section_type >
                                        ( result["filter-type"].as< std::uint32_t >() );

@@ -176,7 +176,7 @@ namespace operation_create
         options.parse_positional( {"operation", "tiger"} );
         options.positional_help( "<tiger files>" );
         auto result = options.parse( a_argc, a_argv );
-        if( result.count( "help" ) != 0 )
+        if( result.contains( "help") )
         {
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
@@ -189,9 +189,9 @@ namespace operation_create
             return EXIT_FAILURE;
         }
         stream.exceptions( std::ios::badbit | std::ios::eofbit | std::ios::failbit );
-        const bool dx11_only = result.count( "dx11" ) != 0;
+        const bool dx11_only = result.contains( "dx11");
         std::map< std::uint32_t, std::string > hash_to_path{};
-        if( result.count( "filelist" ) != 0 )
+        if( result.contains( "filelist") )
             hash_to_path = make_hash_list( std::ifstream{result["filelist"].as< std::string >()} );
         auto input_interface = score::binary_io::create_input_interface( stream, std::endian::little );
         auto archive = cdc_lib::file::load_tiger_archive( *input_interface, filename );
@@ -374,15 +374,15 @@ namespace operation_find
         options.parse_positional( {"operation", "file", "filter"} );
         options.positional_help( "<file> <filter>" );
         auto result = options.parse( a_argc, a_argv );
-        if( result.count( "help" ) != 0
-         || result.count( "file" ) == 0
-         || result.count( "filter" ) == 0 )
+        if( result.contains( "help")
+         || !result.contains( "file")
+         || !result.contains( "filter") )
         {
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
         }
         auto db = load_db( result["file"].as< std::string >() );
-        const bool show_refs = result.count( "refs" ) != 0;
+        const bool show_refs = result.contains( "refs");
         if( show_refs )
             db.add_resource_references();
         auto filter = result["filter"].as< std::string >();
@@ -436,7 +436,7 @@ namespace operation_find_references
         options.parse_positional( {"operation", "file", "section", "type"} );
         options.positional_help( "<file> <section> <type>" );
         auto result = options.parse( a_argc, a_argv );
-        if( result.count( "help" ) != 0 )
+        if( result.contains( "help") )
         {
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
@@ -478,7 +478,7 @@ namespace operation_make_dtp_filelist
         options.parse_positional( {"operation", "file", "gamedir"} );
         options.positional_help( "<file>" );
         auto result = options.parse( a_argc, a_argv );
-        if( result.count( "help" ) != 0 )
+        if( result.contains( "help") )
         {
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
@@ -560,7 +560,7 @@ namespace operation_make_wave_idmap
         options.parse_positional( {"operation", "file", "gamedir"} );
         options.positional_help( "<file>" );
         auto result = options.parse( a_argc, a_argv );
-        if( result.count( "help" ) != 0 )
+        if( result.contains( "help") )
         {
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
@@ -619,7 +619,7 @@ namespace operation_dump_sections_csv
         options.parse_positional( {"operation", "file"} );
         options.positional_help( "<file>" );
         auto result = options.parse( a_argc, a_argv );
-        if( result.count( "help" ) != 0 )
+        if( result.contains( "help") )
         {
             fmt::print( "{}\n", options.help() );
             return EXIT_FAILURE;
