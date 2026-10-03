@@ -1,6 +1,7 @@
 #include "tras_pc_w_compression.h"
 #include <cassert>
 #include <fmt/core.h>
+#include <score/binary_io/binary_io.h>
 #include <score/binary_io/binio_strings.h>
 #include <score/score_bit.h>
 #include <stdexcept>
@@ -47,21 +48,19 @@ namespace cdc_lib::file::tras::pc_w
                 case block_type::zip_compressed:
                 {
                     z_stream stream{};
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.zalloc = Z_NULL;
                     stream.zfree = Z_NULL;
                     stream.opaque = Z_NULL;
                     [[maybe_unused]] int result = inflateInit( &stream );
                     assert( result == Z_OK );
                     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
-                    stream.next_in = reinterpret_cast< const unsigned char* >( a_compressed.data() );
+                    stream.next_in = reinterpret_cast< const Bytef* >( a_compressed.data() );
                     stream.avail_in = a_block.compressed_size;
                     std::string uncompressed( a_block.uncompressed_size, '\0' );
-                    stream.next_out = reinterpret_cast< unsigned char* >( uncompressed.data() );
+                    stream.next_out = reinterpret_cast< Bytef* >( uncompressed.data() );
                     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.avail_out = a_block.uncompressed_size;
 
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                     result = inflate( &stream, Z_NO_FLUSH );
                     assert( result == Z_STREAM_END );
                     // assert( stream.avail_in == 0 );
@@ -87,6 +86,16 @@ namespace cdc_lib::file::tras::pc_w
             const auto padding_bytes = a_alignment - ( current_offset % a_alignment );
             a_input.seek( current_offset + padding_bytes );
             assert( a_input.tell() % a_alignment == 0 );
+        }
+
+        block read_block( score::binary_io::input_interface& a_input )
+        {
+            block b;
+            const auto packed = read< std::uint32_t >( a_input );
+            b.type = static_cast< block_type >( score::get_bits( packed, k_block_type_bit_range ) );
+            b.uncompressed_size = score::get_bits( packed, k_uncompressed_size_bit_range );
+            b.compressed_size = read< std::uint32_t >( a_input );
+            return b;
         }
     }
     [[nodiscard]] bool is_cdrm( score::binary_io::input_interface& a_input )
@@ -116,11 +125,7 @@ namespace cdc_lib::file::tras::pc_w
         std::vector< block > blocks;
         for( std::uint32_t i = 0; i < block_count; ++i )
         {
-            auto b = block{};
-            const auto packed = read< std::uint32_t >( a_input );
-            b.type = static_cast< block_type >( score::get_bits( packed, k_block_type_bit_range ) );
-            b.uncompressed_size = score::get_bits( packed, k_uncompressed_size_bit_range );
-            b.compressed_size = read< std::uint32_t >( a_input );
+            auto b = read_block( a_input );
             if( b.uncompressed_size > k_max_uncompressed_size )
                 throw std::runtime_error{fmt::format( "Uncompressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
                                                       b.uncompressed_size,
