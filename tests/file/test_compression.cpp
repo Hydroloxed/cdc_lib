@@ -27,6 +27,34 @@ suite< "file_compression" > file_compression = []
             ;
         expect( eq( decompress( data, sizeof data ), std::string{} ) );
     };
+
+    test( "exception thrown if magic is not CDRM" ) = []
+    {
+        const char data[] = "NOPE";
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
+    skip / test( "exception thrown if padding count is nonzero" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\0\0\0\0" // block count
+            "\1\0\0\0" // num padding bytes
+            "\0"; // padding byte
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
+    skip / test( "exception thrown if NEXT marker is invalid" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\0\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "JUNK"; // invalid NEXT marker
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
     
     test( "exception thrown if wrong version" ) = []
     {
@@ -99,6 +127,21 @@ suite< "file_compression" > file_compression = []
         expect( eq( decompress( data, sizeof data ), std::string{"Hello"} ) );
     };
 
+    test( "throws if uncompressed block sizes do not match" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "\1" // type=uncompressed
+            "\5\0\0" // uncompressed size=5
+            "\4\0\0\0" // compressed size=4
+            "\0\0\0\0\0\0\0\0" // pad to 0x10
+            "Hell";
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
     test( "zlib-compressed block" ) = []
     {
         const char data[] =
@@ -146,6 +189,54 @@ suite< "file_compression" > file_compression = []
             "\0\0\0\0\0\0\0\0" // pad to 0x10
             // block 0 data: "Hello" (only 5 bytes)
             "\x78\x9c\xf3\x48\xcd\xc9\xc9\x07\x00\x05\x8c\x01\xf5";
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
+    test( "throws if zlib stream is truncated" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "\2" // type=zlib
+            "\5\0\0" // uncompressed size=5
+            "\xC\0\0\0" // compressed size=12 (one byte truncated)
+            "\0\0\0\0\0\0\0\0" // pad to 0x10
+            // block 0 data: "Hello" without the "\xf5" at the end
+            "\x78\x9c\xf3\x48\xcd\xc9\xc9\x07\x00\x05\x8c\x01";
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
+    test( "throws if decompressed zlib output too long" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "\2" // type=zlib
+            "\4\0\0" // uncompressed size=4
+            "\xD\0\0\0" // compressed size=13
+            "\0\0\0\0\0\0\0\0" // pad to 0x10
+            // block 0 data: "Hello" (5 bytes)
+            "\x78\x9c\xf3\x48\xcd\xc9\xc9\x07\x00\x05\x8c\x01\xf5";
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
+    test( "throws when zlib block has trailing compressed data" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "\2" // type=zlib
+            "\5\0\0" // uncompressed size=5
+            "\xE\0\0\0" // compressed size=14
+            "\0\0\0\0\0\0\0\0" // pad to 0x10
+            // block 0 data: "Hello" with a "\0" at the end
+            "\x78\x9c\xf3\x48\xcd\xc9\xc9\x07\x00\x05\x8c\x01\xf5\0";
         expect( throws( [&]{ decompress( data, sizeof data ); } ) );
     };
 
