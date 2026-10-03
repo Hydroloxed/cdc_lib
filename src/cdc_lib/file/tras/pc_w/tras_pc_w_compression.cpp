@@ -181,17 +181,22 @@ namespace cdc_lib::file::tras::pc_w
             if( &b != &blocks.back() )
                 align_to( a_input, k_block_alignment );
         }
+        [[maybe_unused]] std::string next_magic;
         try
         {
-            [[maybe_unused]] std::string next_magic = read_fixed_string( a_input, 4 );
-            assert( next_magic == k_next_magic );
+            next_magic = read_fixed_string( a_input, 4 );
         }
         catch( ... ) // NOLINT(bugprone-empty-catch)
         {
             // we can safely ignore,
             // the data probably just didn't include the NEXT marker
         }
-
+        if( !next_magic.empty() && next_magic != k_next_magic )
+        {
+            throw std::runtime_error{
+                fmt::format("CDRM NEXT magic invalid, found \"{}\", wanted \"{}\"", next_magic, k_next_magic)};
+        }
+        
         return out_data;
     }
 }

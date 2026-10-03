@@ -34,6 +34,8 @@ suite< "file_compression" > file_compression = []
         expect( throws( [&]{ decompress( data, sizeof data ); } ) );
     };
 
+    // FIXME: Reactivate when padding is properly tested and implemented
+    //        (Only if we can find it used by the game)
     skip / test( "exception thrown if padding count is nonzero" ) = []
     {
         const char data[] =
@@ -45,7 +47,7 @@ suite< "file_compression" > file_compression = []
         expect( throws( [&]{ decompress( data, sizeof data ); } ) );
     };
 
-    skip / test( "exception thrown if NEXT marker is invalid" ) = []
+    test( "exception thrown if NEXT marker is invalid" ) = []
     {
         const char data[] =
             "CDRM" // magic
