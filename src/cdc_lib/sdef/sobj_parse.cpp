@@ -1,10 +1,19 @@
 #include "sobj_parse.h"
 #include <cdc_lib/sdef/sdef_node.h>
+#include <score/binary_io/binio_strings.h>
 
 namespace cdc_lib::sdef
 {
     namespace
     {
+        std::string read_string( resource::reloc_istream& a_data )
+        {
+            auto scope = resource::reloc_istream_scope{a_data, "sdef.string"};
+            if( !scope )
+                return {};
+            return score::binary_io::read_c_string( a_data );
+        }
+
         sobj_node parse_sobj_impl( sdef_node* a_sdef,
                                    sobj_node* a_parent,
                                    resource::reloc_istream& a_data )
@@ -43,6 +52,7 @@ namespace cdc_lib::sdef
                     case int16:   node.var_data.data = read< std::int16_t >(a_data); break;
                     case int32:   node.var_data.data = read< std::int32_t >(a_data); break;
                     case int64:   node.var_data.data = read< std::int64_t >(a_data); break;
+                    case string:  node.var_data.data = read_string( a_data ); break;
                     // clang-format on
                     default: assert(false && "Unsupported primitive type. Bug in parse_sobj"); break;
                 }

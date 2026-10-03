@@ -58,6 +58,7 @@ namespace cdc_lib::sdef
             if( a_type == "uint64" ) return sdef_primitive_type::uint64;
             if( a_type == "float32" ) return sdef_primitive_type::float32;
             if( a_type == "float64" ) return sdef_primitive_type::float64;
+            if( a_type == "string" ) return sdef_primitive_type::string;
             return sdef_primitive_type::none;
         }
 

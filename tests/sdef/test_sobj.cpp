@@ -1,3 +1,4 @@
+#include "cdc_lib/resource/rsrc_relocation.h"
 #include <boost/ut.hpp>
 #include <cdc_lib/sdef/sdef_parse.h>
 #include <cdc_lib/sdef/sobj_node.h>
@@ -13,10 +14,12 @@ namespace
         std::unique_ptr< score::binary_io::input_interface > istream;
         std::string data;
     };
-    stream_data setup_stream( const std::string& a_data )
+    stream_data setup_stream( const std::string& a_data,
+                              std::span< cdc_lib::resource::cooked_relocation > a_relocations = {},
+                              std::size_t a_pointer_size = 4 )
     {
         auto istream = score::binary_io::create_input_interface( a_data );
-        auto ristream = cdc_lib::resource::reloc_istream{*istream, {}, 0};
+        auto ristream = cdc_lib::resource::reloc_istream{*istream, a_relocations, a_pointer_size};
         return {.ristream = std::move( ristream ),
                 .istream = std::move( istream ),
                 .data = a_data};
@@ -160,5 +163,40 @@ boost::ut::suite< "sobj" > sobj = []
         auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="float64" /></Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
         expect( eq(sobj.children[0]->var_data.as_float64(), 123.0_d) );
+    };
+
+    const cdc_lib::resource::cooked_relocation k_relocation =
+            {.src_ptr_offset = 0,
+             .dest_ptr_offset = 4,
+             .type = cdc_lib::resource::cooked_relocation_type::internal};
+
+    test( "can parse a string" ) = [k_relocation]
+    {
+        const std::string data = std::string{"\x00\x00\x00\x00hello\x00", 10};
+        std::vector relocations{k_relocation};
+        auto streams = setup_stream( data, relocations, 4 );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="string" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_string(), std::string{"hello"}) );
+        expect( eq(streams.ristream.tell(), 4) );
+    };
+
+    test( "can parse a null string" ) = []
+    {
+        const std::string data = std::string{"\x00\x00\x00\x00\x00", 5};
+        auto streams = setup_stream( data, {}, 4 );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="string" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_string(), std::string{}) );
+    };
+
+    test( "can parse an empty string" ) = [k_relocation]
+    {
+        const std::string data = std::string{"\x00\x00\x00\x00\x00", 5};
+        std::vector relocations{k_relocation};
+        auto streams = setup_stream( data, relocations, 4 );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(<Struct name="EmptyStruct"><Var name="Var1" type="string" /></Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children[0]->var_data.as_string(), std::string{}) );
     };
 };
