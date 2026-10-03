@@ -38,6 +38,32 @@ suite< "file_compression" > file_compression = []
         expect( throws( [&]{ decompress( data, sizeof data ); } ) );
     };
 
+    test( "exception thrown if uncompressed size is too large" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "\1" // type=uncompressed
+            "\xff\xff\xff" // uncompressed size
+            "\0\0\0\0"; // compressed size
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
+    test( "exception thrown if compressed size is too large" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            "\1" // type=uncompressed
+            "\1\0\0" // uncompressed size
+            "\xff\xff\xff\xff"; // compressed size
+        expect( throws( [&]{ decompress( data, sizeof data ); } ) );
+    };
+
     // FIXME: Disabled for now, change compression.cpp to accept empty
     // blocks, and then reenable this test.
     skip / test( "empty block ignored" ) = []
