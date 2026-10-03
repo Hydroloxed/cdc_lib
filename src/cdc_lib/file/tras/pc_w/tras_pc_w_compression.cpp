@@ -17,7 +17,7 @@ namespace cdc_lib::file::tras::pc_w
             empty,
             uncompressed,
             zip_compressed,
-            x_compressed
+            x_compressed,
         };
 
         struct block
@@ -37,6 +37,35 @@ namespace cdc_lib::file::tras::pc_w
         constexpr score::bit_range k_block_type_bit_range = score::bit_range{0, 8};
         constexpr score::bit_range k_uncompressed_size_bit_range = score::bit_range{8, 24};
 
+        void throw_on_error( int a_result, int a_expected )
+        {
+            if( a_result == a_expected )
+                return;
+
+            switch( a_result )
+            {
+            case Z_OK:
+                // In this case we probably wanted Z_STREAM_END
+                throw std::runtime_error{"Stream ended too early. "
+                                         "Mismatch between CDRM and zlib metadata?"};
+            case Z_NEED_DICT:
+                throw std::invalid_argument{"Invalid CDRM: Dictionary missing"};
+            case Z_DATA_ERROR:
+                throw std::invalid_argument{"Corrupt CDRM"};
+            case Z_STREAM_ERROR:
+                assert(false && "Bug in decompress(), got Z_STREAM_ERROR. "
+                                "Arguments passed to inflate() or inflateInit() were bad");
+                break;
+            case Z_MEM_ERROR:
+                throw std::bad_alloc{};
+            case Z_BUF_ERROR:
+                throw std::invalid_argument{"Corrupt CDRM"};
+            default:
+                assert(false && "Bug in decompress(), got unknown ZLIB error");
+                throw std::invalid_argument{"Corrupt CDRM, got unknown zlib error"};
+            }
+        }
+
         std::string decompress( const std::string& a_compressed, const block& a_block )
         {
             switch( a_block.type )
@@ -52,21 +81,26 @@ namespace cdc_lib::file::tras::pc_w
                     stream.zfree = Z_NULL;
                     stream.opaque = Z_NULL;
                     [[maybe_unused]] int result = inflateInit( &stream );
-                    assert( result == Z_OK );
+                    throw_on_error(result, /*a_expected=*/Z_OK);
+
                     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.next_in = reinterpret_cast< const Bytef* >( a_compressed.data() );
-                    stream.avail_in = a_block.compressed_size;
                     std::string uncompressed( a_block.uncompressed_size, '\0' );
                     stream.next_out = reinterpret_cast< Bytef* >( uncompressed.data() );
                     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+                    stream.avail_in = a_block.compressed_size;
                     stream.avail_out = a_block.uncompressed_size;
 
                     result = inflate( &stream, Z_NO_FLUSH );
-                    assert( result == Z_STREAM_END );
-                    // assert( stream.avail_in == 0 );
+                    throw_on_error(result, /*a_expected=*/Z_STREAM_END);
+
+                    if( stream.total_out != a_block.uncompressed_size )
+                        throw std::invalid_argument{"CDRM corrupt, inflate stream was too short"};
+                    assert( stream.avail_in == 0 );
                     assert( stream.avail_out == 0 );
-                    assert( stream.total_out == a_block.uncompressed_size );
-                    assert( inflateEnd( &stream ) == Z_OK );
+
+                    result = inflateEnd( &stream );
+                    throw_on_error(result, /*a_expected=*/Z_OK);
                     return uncompressed;
                 }
                 case block_type::x_compressed:
@@ -127,11 +161,11 @@ namespace cdc_lib::file::tras::pc_w
         {
             auto b = read_block( a_input );
             if( b.uncompressed_size > k_max_uncompressed_size )
-                throw std::runtime_error{fmt::format( "Uncompressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
+                throw std::length_error{fmt::format( "Uncompressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
                                                       b.uncompressed_size,
                                                       k_max_uncompressed_size )};
             if( b.compressed_size > k_max_compressed_size )
-                throw std::runtime_error{fmt::format( "Compressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
+                throw std::length_error{fmt::format( "Compressed size {:#x} too big (max {:#x}) (corrupt CDRM)",
                                                       b.compressed_size,
                                                       k_max_compressed_size )};
             blocks.push_back( b );
@@ -149,7 +183,7 @@ namespace cdc_lib::file::tras::pc_w
             [[maybe_unused]] std::string next_magic = read_fixed_string( a_input, 4 );
             assert( next_magic == k_next_magic );
         }
-        catch( ... )
+        catch( ... ) // NOLINT(bugprone-empty-catch)
         {
             // we can safely ignore,
             // the data probably just didn't include the NEXT marker
