@@ -2,7 +2,6 @@
 #include <cdc_lib/file/tras/pc_w/tras_pc_w_compression.h>
 #include <cdc_lib/file/archive_fs.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resolve_object.h>
-#include <cstdio>
 #include <cstdlib>
 #include <cxxopts.hpp>
 #include <fmt/base.h>

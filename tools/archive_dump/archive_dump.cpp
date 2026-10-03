@@ -1,5 +1,4 @@
 #include <cdc_lib/file/archive_fs.h>
-#include <cstdio>
 #include <cstdlib>
 #include <cxxopts.hpp>
 #include <fmt/core.h>

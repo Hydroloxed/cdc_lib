@@ -1,6 +1,4 @@
 #include <cdc_lib/render/tras/pc_w/tras_pc_w_shader.h>
-#include <cinttypes>
-#include <cstdio>
 #include <cstdlib>
 #include <cxxopts.hpp>
 #include <fmt/core.h>
