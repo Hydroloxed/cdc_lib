@@ -73,6 +73,23 @@ suite< "file_compression" > file_compression = []
         expect( eq( decompress( data, sizeof data ), std::string{"Hello"} ) );
     };
 
+    test( "zlib-compressed block" ) = []
+    {
+        const char data[] =
+            "CDRM" // magic
+            "\0\0\0\0" // version
+            "\1\0\0\0" // block count
+            "\0\0\0\0" // num padding bytes
+            // block 0
+            "\2" // type=zlib
+            "\5\0\0" // uncompressed size=5
+            "\xD\0\0\0" // compressed size=13
+            "\0\0\0\0\0\0\0\0" // pad to 0x10
+            // block 0 data: zlib-compressed "Hello"
+            "\x78\x9c\xf3\x48\xcd\xc9\xc9\x07\x00\x05\x8c\x01\xf5";
+        expect( eq( decompress( data, sizeof data ), std::string{"Hello"} ) );
+    };
+
     test( "multiple blocks" ) = []
     {
         const char data[] =

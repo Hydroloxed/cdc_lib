@@ -55,7 +55,7 @@ namespace cdc_lib::file::tras::pc_w
                     assert( result == Z_OK );
                     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     stream.next_in = reinterpret_cast< const unsigned char* >( a_compressed.data() );
-                    stream.avail_in = a_block.uncompressed_size;
+                    stream.avail_in = a_block.compressed_size;
                     std::string uncompressed( a_block.uncompressed_size, '\0' );
                     stream.next_out = reinterpret_cast< unsigned char* >( uncompressed.data() );
                     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
