@@ -34,8 +34,8 @@ namespace cdc_lib::file::tras::pc_w
         constexpr std::uint32_t k_max_uncompressed_size = 0x40000;
         constexpr std::uint32_t k_block_alignment = 0x10;
 
-        constexpr score::bit_range k_block_type_bit_range = score::bit_range{0, 8};
-        constexpr score::bit_range k_uncompressed_size_bit_range = score::bit_range{8, 24};
+        constexpr score::bit_range k_block_type_bit_range{0, 8};
+        constexpr score::bit_range k_uncompressed_size_bit_range{8, 24};
 
         void throw_on_error( int a_result, int a_expected )
         {
@@ -73,6 +73,8 @@ namespace cdc_lib::file::tras::pc_w
                 case block_type::empty:
                     throw std::runtime_error{"Empty block type, can this really happen?"};
                 case block_type::uncompressed:
+                    if( a_block.compressed_size != a_block.uncompressed_size )
+                        throw std::invalid_argument{"CDRM corrupt, uncompressed block sizes do not match"};
                     return a_compressed;
                 case block_type::zip_compressed:
                 {
@@ -96,7 +98,8 @@ namespace cdc_lib::file::tras::pc_w
 
                     if( stream.total_out != a_block.uncompressed_size )
                         throw std::invalid_argument{"CDRM corrupt, inflate stream was too short"};
-                    assert( stream.avail_in == 0 );
+                    if( stream.avail_in != 0 )
+                        throw std::invalid_argument{"Garbage at end of zlib block"};
                     assert( stream.avail_out == 0 );
 
                     result = inflateEnd( &stream );
