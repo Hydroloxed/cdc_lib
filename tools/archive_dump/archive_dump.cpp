@@ -6,6 +6,13 @@
 std::string guess_record_type( const cdc_lib::file::archive& a_archive, const cdc_lib::file::archive_record& a_record )
 {
     const auto data = cdc_lib::file::read_record( a_archive, a_record );
+
+    if( a_record.name_hash == cdc_lib::file::hash_filename( a_archive, "objectlist.txt" ) )
+        return "objectlist";
+    if( a_record.name_hash == cdc_lib::file::hash_filename( a_archive, "symbol.ids" ) )
+        return "symbols";
+    if( a_record.name_hash == cdc_lib::file::hash_filename( a_archive, "local\\locals.bin" ) )
+        return "locals";
     if( data.empty() )
         return "empty file";
     if( data[0] == '\x16' )

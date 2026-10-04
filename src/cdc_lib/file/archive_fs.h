@@ -27,6 +27,7 @@ namespace cdc_lib::file
     };
 
     [[nodiscard]] archive load_tiger_archive( score::binary_io::input_interface& a_input, const std::filesystem::path& a_path );
+    [[nodiscard]] std::uint64_t hash_filename( const archive& a_archive, std::string_view a_filename );
     [[nodiscard]] bool can_read_offset( const archive& a_archive, std::uint32_t a_offset );
     [[nodiscard]] std::string read_offset( const archive& a_archive, std::uint32_t a_offset, std::size_t a_size );
     [[nodiscard]] std::string read_record( const archive& a_archive, const archive_record& a_record );

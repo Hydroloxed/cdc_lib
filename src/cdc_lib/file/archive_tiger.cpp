@@ -1,4 +1,5 @@
 #include "archive_fs.h"
+#include "cdc_lib/core/core_crc32.h"
 #include <cdc_lib/file/archive_fs.h>
 #include <fmt/format.h>
 #include <fstream>
@@ -88,6 +89,12 @@ namespace cdc_lib::file
     [[nodiscard]] std::string read_record( const archive& a_archive, const archive_record& a_record )
     {
         return read_offset( a_archive, a_record.offset, a_record.size );
+    }
+
+    [[nodiscard]] std::uint64_t hash_filename( const archive& a_archive, std::string_view a_filename )
+    {
+        std::string real_filename = a_archive.config_name + "\\" + std::string{a_filename};
+        return core::crc32(real_filename);
     }
 
     [[nodiscard]] bool can_read_offset( const archive_multifs& a_multifs, std::uint32_t a_offset )
