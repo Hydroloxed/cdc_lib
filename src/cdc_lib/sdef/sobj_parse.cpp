@@ -1,4 +1,5 @@
 #include "sobj_parse.h"
+#include <cassert>
 #include <cdc_lib/sdef/sdef_node.h>
 #include <score/binary_io/binio_strings.h>
 
