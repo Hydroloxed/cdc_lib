@@ -1,4 +1,5 @@
 #include "tras_pc_w_material.h"
+#include "score/score_bit.h"
 #include <cassert>
 #include <cstdint>
 #include <score/containers/simple_lookup_table.h>
@@ -154,9 +155,8 @@ namespace cdc_lib::render::tras::pc_w
 
         namespace texture_entry
         {
-            constexpr std::uint8_t k_type_mask = (1u << 5u) - 1u;
-            constexpr std::uint8_t k_class_shift = 5u;
-            constexpr std::uint8_t k_class_mask = ((1u << 3u) - 1u) << k_class_shift;
+            constexpr score::bit_range k_type_range{0, 5};
+            constexpr score::bit_range k_class_range{5, 3};
         }
 
         void read_pass( resource::reloc_istream& a_istream, material_data::pass_data& a_pass )
@@ -184,9 +184,9 @@ namespace cdc_lib::render::tras::pc_w
                     read( a_istream, te.category );
                     const auto type_and_class = read< std::uint8_t >( a_istream );
                     te.type = static_cast< material_data::texture_type >
-                        ( type_and_class & texture_entry::k_type_mask );
+                        ( score::get_bits( type_and_class, texture_entry::k_type_range ) );
                     te.class_ = static_cast< texture_class >
-                        ( (type_and_class & texture_entry::k_class_mask) >> texture_entry::k_class_shift );
+                        ( score::get_bits( type_and_class, texture_entry::k_class_range ) );
                     read( a_istream, te.texture_slot );
                     read( a_istream, te.filter );
                 }
