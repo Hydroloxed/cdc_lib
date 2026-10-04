@@ -1,14 +1,10 @@
 #ifndef CDC_LIB_RESOURCE_RSRC_RELOC_INPUT_STREAM_H
 #define CDC_LIB_RESOURCE_RSRC_RELOC_INPUT_STREAM_H
 #include "rsrc_relocation.h"
-#include <algorithm>
-#include <cassert>
 #include <cstdlib>
-#include <exception>
-#include <optional>
 #include <score/binary_io/binary_io.h>
+#include <span>
 #include <stack>
-#include <stdexcept>
 #include <vector>
 
 namespace cdc_lib::resource
@@ -60,87 +56,24 @@ namespace cdc_lib::resource
         reloc_istream& operator=( const reloc_istream& ) = delete;
         reloc_istream& operator=( reloc_istream&& ) = delete;
         ~reloc_istream() override = default;
-        void read( std::span< std::byte > a_out_bytes ) override
-        {
-            assert( underlying_interface.tell() == get_current_scope().offset + get_current_scope().bytes_read );
-            underlying_interface.read( a_out_bytes );
-            get_current_scope().bytes_read += a_out_bytes.size();
-        }
-        [[nodiscard]] std::size_t tell() const override { return underlying_interface.tell() - top_level_scope.offset; }
-        void seek( [[maybe_unused]] std::size_t a_offset ) override
-        {
-            assert( 0 && "You can't use seek() with a reloc_input_stream."
-                         "If you want to skip n bytes, use skip_bytes instead (from binary_io)" );
-        }
+        void read( std::span< std::byte > a_out_bytes ) override;
+        [[nodiscard]] std::size_t tell() const override;
+        void seek( [[maybe_unused]] std::size_t a_offset ) override;
 
-        void rebase() { top_level_scope.offset = underlying_interface.tell(); }
+        void rebase();
         [[nodiscard]] std::span< reloc_stream_subsection_info > get_subsections() noexcept { return std::span{subsections}; }
         [[nodiscard]] std::span< const reloc_stream_subsection_info > get_subsections() const noexcept { return std::span{subsections}; }
-        scope* start_scope( std::size_t a_offset, std::string_view a_debug_name = "<unnamed>" )
-        {
-            auto* s = &scope_stack.emplace( a_offset, 0, std::string{ a_debug_name } );
-            update_scope();
-            return s;
-        }
-        scope* start_scope( std::string_view a_debug_name = "<unnamed>" )
-        {
-            const auto* relocation_here = try_read_relocation();
-            if( !relocation_here || relocation_here->is_external() )
-                return nullptr;
-            return start_scope( relocation_here->dest_ptr_offset + top_level_scope.offset, a_debug_name );
-        }
-        void end_scope()
-        {
-            assert( !scope_stack.empty() && "Relocation scope stack underflow!" );
-            save_subsection( scope_stack.top() );
-            scope_stack.pop();
-            update_scope();
-        }
-        [[nodiscard]] cooked_relocation* get_relocation_at( std::size_t a_offset )
-        {
-            const auto find = std::ranges::find_if
-            (
-                relocations,
-                [a_offset]( const cooked_relocation& a_reloc )
-                {
-                    return a_reloc.src_ptr_offset == a_offset;
-                }
-            );
-            if( find == std::end( relocations ) )
-                return nullptr;
-            return &*find;
-        }
-        [[nodiscard]] cooked_relocation* get_relocation_at_cursor()
-        {
-            return get_relocation_at( underlying_interface.tell() - top_level_scope.offset );
-        }
-        [[nodiscard]] cooked_relocation* try_read_relocation() noexcept
-        {
-            auto* reloc = get_relocation_at_cursor();
-            get_current_scope().bytes_read += pointer_size;
-            underlying_interface.seek( underlying_interface.tell() + pointer_size );
-            return reloc;
-        }
-        [[nodiscard]] cooked_relocation* read_relocation()
-        {
-            auto* reloc = try_read_relocation();
-            if( !reloc )
-                throw std::range_error{ "Could not read relocation." };
-            return reloc;
-        }
+        scope* start_scope( std::size_t a_offset, std::string_view a_debug_name = "<unnamed>" );
+        scope* start_scope( std::string_view a_debug_name = "<unnamed>" );
+        void end_scope();
+        [[nodiscard]] cooked_relocation* get_relocation_at( std::size_t a_offset );
+        [[nodiscard]] cooked_relocation* get_relocation_at_cursor();
+        [[nodiscard]] cooked_relocation* try_read_relocation() noexcept;
+        [[nodiscard]] cooked_relocation* read_relocation();
     private:
-        void save_subsection( const scope& a_scope )
-        {
-            subsections.push_back( {a_scope.debug_name, a_scope.offset, a_scope.bytes_read} );
-        }
-        [[nodiscard]] scope& get_current_scope()
-        {
-            return scope_stack.empty() ? top_level_scope : scope_stack.top();
-        }
-        void update_scope()
-        {
-            underlying_interface.seek( scope_stack.top().offset + scope_stack.top().bytes_read );
-        }
+        void save_subsection( const scope& a_scope );
+        [[nodiscard]] scope& get_current_scope();
+        void update_scope();
 
         std::span< cooked_relocation > relocations;
         std::vector< reloc_stream_subsection_info > subsections{};
