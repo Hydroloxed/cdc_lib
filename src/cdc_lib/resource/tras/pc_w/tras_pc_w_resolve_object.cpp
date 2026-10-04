@@ -1,4 +1,5 @@
 #include "tras_pc_w_resolve_object.h"
+#include <array>
 #include <cassert>
 #include <cdc_lib/resource/rsrc_resolve_object.h>
 #include <cstdint>
@@ -182,7 +183,7 @@ namespace cdc_lib::resource::tras::pc_w
             const auto interface = score::binary_io::create_input_interface( data );
             if( section.relocation_table_size )
             {
-                std::uint32_t sizes[5]{};
+                std::array<std::uint32_t, 5> sizes{};
                 for( auto& s : sizes )
                     s = read< std::uint32_t >( *interface );
                 const auto rsize = sizes[0] * 8 + sizes[1] * 4 + sizes[2] * 8 + sizes[3] * 4 + sizes[4] * 4 + 0x14;
