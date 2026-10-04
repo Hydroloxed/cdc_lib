@@ -279,7 +279,7 @@ namespace cdc_lib::render::tras::pc_w
             if( !scope )
                 continue;
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-            auto& pass = ret->passes[i];
+            auto& pass = ret->passes.at(i);
             pass = material_data::pass_data{};
             read_pass( a_istream, *pass );
         }

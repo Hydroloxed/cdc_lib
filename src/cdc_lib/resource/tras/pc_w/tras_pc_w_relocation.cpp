@@ -205,10 +205,10 @@ namespace cdc_lib::resource::tras::pc_w
             std::string temp_data{};
             auto temp_oo = score::binary_io::create_output_interface( temp_data, a_output_interface.endian() );
             write< std::uint32_t >( *temp_oo, guid );
-            a_resource_data[ptr.src_ptr_offset] = temp_data[0];
-            a_resource_data[ptr.src_ptr_offset + 1] = temp_data[1];
-            a_resource_data[ptr.src_ptr_offset + 2] = temp_data[2];
-            a_resource_data[ptr.src_ptr_offset + 3] = temp_data[3];
+            a_resource_data.at(ptr.src_ptr_offset) = temp_data.at(0);
+            a_resource_data.at(ptr.src_ptr_offset + 1) = temp_data.at(1);
+            a_resource_data.at(ptr.src_ptr_offset + 2) = temp_data.at(2);
+            a_resource_data.at(ptr.src_ptr_offset + 3) = temp_data.at(3);
         }
         for( const auto& ptr : resource_ptrs )
         {
@@ -221,10 +221,10 @@ namespace cdc_lib::resource::tras::pc_w
             std::string temp_data{};
             auto temp_oo = score::binary_io::create_output_interface( temp_data, a_output_interface.endian() );
             write< std::uint32_t >( *temp_oo, id.resource_id );
-            a_resource_data[ptr.src_ptr_offset] = temp_data[0];
-            a_resource_data[ptr.src_ptr_offset + 1] = temp_data[1];
-            a_resource_data[ptr.src_ptr_offset + 2] = temp_data[2];
-            a_resource_data[ptr.src_ptr_offset + 3] = temp_data[3];
+            a_resource_data.at(ptr.src_ptr_offset) = temp_data.at(0);
+            a_resource_data.at(ptr.src_ptr_offset + 1) = temp_data.at(1);
+            a_resource_data.at(ptr.src_ptr_offset + 2) = temp_data.at(2);
+            a_resource_data.at(ptr.src_ptr_offset + 3) = temp_data.at(3);
         }
     }
 }

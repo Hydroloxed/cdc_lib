@@ -52,7 +52,7 @@ namespace cdc_lib::core
         std::uint32_t result = -1;
         for( const auto b : a_bytes )
         {
-            result = (result << 8u) ^ detail::k_table[(result >> 24u) ^ static_cast< std::uint8_t >( b )];
+            result = (result << 8u) ^ detail::k_table.at((result >> 24u) ^ static_cast< std::uint8_t >( b ));
         }
         return ~result;
     }
@@ -62,7 +62,7 @@ namespace cdc_lib::core
         std::uint32_t result = -1;
         for( const auto c : a_string )
         {
-            result = (result << 8u) ^ detail::k_table[(result >> 24u) ^ static_cast< std::uint8_t>( c )];
+            result = (result << 8u) ^ detail::k_table.at((result >> 24u) ^ static_cast< std::uint8_t>( c ));
         }
         return ~result;
     }

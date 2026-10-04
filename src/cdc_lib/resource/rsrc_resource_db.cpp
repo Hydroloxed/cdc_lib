@@ -187,7 +187,7 @@ namespace cdc_lib::resource
     std::optional< std::size_t > db_object::find_section_index( cooked_resource_guid a_guid ) const
     {
         for( std::size_t i = 0u; i < referenced_resources.size(); ++i )
-            if( referenced_resources[i] == a_guid )
+            if( referenced_resources.at(i) == a_guid )
                 return i;
         return std::nullopt;
     }

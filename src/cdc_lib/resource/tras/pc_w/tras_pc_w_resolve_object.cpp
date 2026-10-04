@@ -95,7 +95,7 @@ namespace cdc_lib::resource::tras::pc_w
         }
 
         object->primary_section = primary_section == k_no_primary_section
-                                ? nullptr : &object->sections[ primary_section ];
+                                ? nullptr : &object->sections.at( primary_section );
         const auto strings = read_string_list( a_input_interface, include_length + depends_length );
         for( std::size_t pos = 0; const auto& string : strings )
         {
@@ -179,14 +179,14 @@ namespace cdc_lib::resource::tras::pc_w
         for( const auto& data : a_section_datas )
         {
             i = i + 1;
-            const auto& section = a_object.sections[i - 1];
+            const auto& section = a_object.sections.at(i - 1);
             const auto interface = score::binary_io::create_input_interface( data );
             if( section.relocation_table_size )
             {
                 std::array<std::uint32_t, 5> sizes{};
                 for( auto& s : sizes )
                     s = read< std::uint32_t >( *interface );
-                const auto rsize = sizes[0] * 8 + sizes[1] * 4 + sizes[2] * 8 + sizes[3] * 4 + sizes[4] * 4 + 0x14;
+                const auto rsize = sizes.at(0) * 8 + sizes.at(1) * 4 + sizes.at(2) * 8 + sizes.at(3) * 4 + sizes.at(4) * 4 + 0x14;
                 if( section.relocation_table_size != rsize )
                 {
                     std::printf("reloc table size mismatch: %x data vs %zx SectionInfo\n", rsize, section.relocation_table_size );
