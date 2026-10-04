@@ -51,7 +51,7 @@ namespace cdc_lib::resource
         {
             rebase();
         }
-        reloc_istream( reloc_istream&& ) = default;
+        reloc_istream( reloc_istream&& ) noexcept = default;
         reloc_istream( const reloc_istream& ) = delete;
         reloc_istream& operator=( const reloc_istream& ) = delete;
         reloc_istream& operator=( reloc_istream&& ) = delete;
