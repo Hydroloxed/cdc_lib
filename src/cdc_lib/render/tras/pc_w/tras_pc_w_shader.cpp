@@ -22,8 +22,8 @@ namespace cdc_lib::render::tras::pc_w
         }
 
         std::vector< std::uint32_t > unique_shader_offsets( shader_offsets );
-        std::sort( std::begin( unique_shader_offsets ), std::end( unique_shader_offsets ) );
-        unique_shader_offsets.erase( std::unique( std::begin( unique_shader_offsets ), std::end( unique_shader_offsets ) ), std::end( unique_shader_offsets ) );
+        std::ranges::sort( unique_shader_offsets );
+        unique_shader_offsets.erase( std::ranges::unique( unique_shader_offsets ).begin(), unique_shader_offsets.end() );
         std::map< std::uint32_t, std::shared_ptr< shader > > offset_to_shader;
         for( const auto offset : unique_shader_offsets )
         {
