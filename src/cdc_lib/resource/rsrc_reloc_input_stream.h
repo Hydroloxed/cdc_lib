@@ -98,10 +98,9 @@ namespace cdc_lib::resource
         }
         [[nodiscard]] cooked_relocation* get_relocation_at( std::size_t a_offset )
         {
-            const auto find = std::find_if
+            const auto find = std::ranges::find_if
             (
-                relocations.begin(),
-                relocations.end(),
+                relocations,
                 [a_offset]( const cooked_relocation& a_reloc )
                 {
                     return a_reloc.src_ptr_offset == a_offset;
