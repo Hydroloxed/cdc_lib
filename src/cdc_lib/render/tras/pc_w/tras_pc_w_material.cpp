@@ -7,7 +7,7 @@ namespace cdc_lib::render::tras::pc_w
 {
     namespace
     {
-        constexpr score::simple_lookup_table< std::uint32_t, material_data::fog_type, 4 > fog_type_lut =
+        constexpr score::simple_lookup_table< std::uint32_t, material_data::fog_type, 4 > k_fog_type_lut =
         {
             std::pair{ 0u, material_data::fog_type::none },
             std::pair{ 1u, material_data::fog_type::linear_dist },
@@ -17,10 +17,10 @@ namespace cdc_lib::render::tras::pc_w
 
         void read( score::binary_io::input_interface& a_interface, material_data::fog_type& a_ft )
         {
-            a_ft = fog_type_lut.lookup_or( read< std::uint16_t >( a_interface ), material_data::fog_type::invalid );
+            a_ft = k_fog_type_lut.lookup_or( read< std::uint16_t >( a_interface ), material_data::fog_type::invalid );
         }
 
-        constexpr score::simple_lookup_table< std::uint32_t, material_data::fade_mode, 6 > fade_mode_lut =
+        constexpr score::simple_lookup_table< std::uint32_t, material_data::fade_mode, 6 > k_fade_mode_lut =
         {
             std::pair{ 0u, material_data::fade_mode::off },
             std::pair{ 1u, material_data::fade_mode::alpha_blend },
@@ -32,10 +32,10 @@ namespace cdc_lib::render::tras::pc_w
 
         void read( score::binary_io::input_interface& a_interface, material_data::fade_mode& a_fm )
         {
-            a_fm = fade_mode_lut.lookup_or( read< std::uint16_t >( a_interface ), material_data::fade_mode::invalid );
+            a_fm = k_fade_mode_lut.lookup_or( read< std::uint16_t >( a_interface ), material_data::fade_mode::invalid );
         }
 
-        constexpr score::simple_lookup_table< std::uint32_t, texture_filter, 10 > texture_filter_lut =
+        constexpr score::simple_lookup_table< std::uint32_t, texture_filter, 10 > k_texture_filter_lut =
         {
             std::pair{0u, texture_filter::point},
             std::pair{1u, texture_filter::bilinear},
@@ -51,7 +51,7 @@ namespace cdc_lib::render::tras::pc_w
 
         void read( score::binary_io::input_interface& a_interface, texture_filter& a_filter )
         {
-            a_filter = texture_filter_lut.lookup_or( read< std::uint16_t >( a_interface ), texture_filter::invalid );
+            a_filter = k_texture_filter_lut.lookup_or( read< std::uint16_t >( a_interface ), texture_filter::invalid );
         }
 
         constexpr std::uint32_t k_version = 0x13;
