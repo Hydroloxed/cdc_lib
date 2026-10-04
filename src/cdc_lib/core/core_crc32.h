@@ -50,7 +50,7 @@ namespace cdc_lib::core
     constexpr std::uint32_t crc32( std::span< const std::byte > a_bytes )
     {
         std::uint32_t result = -1;
-        for( auto b : a_bytes )
+        for( const auto b : a_bytes )
         {
             result = (result << 8u) ^ detail::k_table[(result >> 24u) ^ static_cast< std::uint8_t >( b )];
         }
@@ -60,7 +60,7 @@ namespace cdc_lib::core
     constexpr std::uint32_t crc32( std::string_view a_string )
     {
         std::uint32_t result = -1;
-        for( auto c : a_string )
+        for( const auto c : a_string )
         {
             result = (result << 8u) ^ detail::k_table[(result >> 24u) ^ static_cast< std::uint8_t>( c )];
         }

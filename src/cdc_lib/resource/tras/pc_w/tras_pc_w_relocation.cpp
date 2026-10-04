@@ -50,10 +50,10 @@ namespace cdc_lib::resource::tras::pc_w
                              resource_id_16_count +
                              resource_pointer_count );
 
-        auto read_intern_ptr = [&a_input_interface]()
+        const auto read_intern_ptr = [&a_input_interface]()
         {
-            auto ptr_offset = read< std::uint32_t >( a_input_interface );
-            auto referenced_offset = read< std::uint32_t >( a_input_interface );
+            const auto ptr_offset = read< std::uint32_t >( a_input_interface );
+            const auto referenced_offset = read< std::uint32_t >( a_input_interface );
             return cooked_relocation
             {
                 .src_ptr_offset = ptr_offset,
@@ -62,7 +62,7 @@ namespace cdc_lib::resource::tras::pc_w
                 .type = cooked_relocation_type::internal
             };
         };
-        auto read_extern_ptr = [&a_input_interface, data_offset]()
+        const auto read_extern_ptr = [&a_input_interface, data_offset]()
         {
             const auto packed = read< std::uint64_t >( a_input_interface );
             const auto pointer_offset = score::get_bits( packed, k_extern_ptr_pointer_offset_range ) * 4;
@@ -87,7 +87,7 @@ namespace cdc_lib::resource::tras::pc_w
                 .type = cooked_relocation_type::external
             };
         };
-        auto read_resource_id_16 = [&a_input_interface, data_offset]()
+        const auto read_resource_id_16 = [&a_input_interface, data_offset]()
         {
             constexpr score::bit_range k_resource_type_range     = {0u, 16u};
             // only half of the resource id is stored here; the other half is at *offset*
@@ -120,7 +120,7 @@ namespace cdc_lib::resource::tras::pc_w
                 .type = cooked_relocation_type::resource_id16
             };
         };
-        auto read_resource_pointer = [&a_input_interface, data_offset]( bool a_is_resource_id )
+        const auto read_resource_pointer = [&a_input_interface, data_offset]( bool a_is_resource_id )
         {
             // resource pointer ids are always 31 bits
             // the top bit is used to express whether the pointer is optional
@@ -199,7 +199,7 @@ namespace cdc_lib::resource::tras::pc_w
             packed = score::set_bits< std::uint64_t >( packed, k_extern_ptr_referenced_offset_range, ptr.dest_ptr_offset );
             write< std::uint64_t >( a_output_interface, packed );
             std::uint32_t guid = 0;
-            resource_ref_id id{ptr.resource->get_user_id()};
+            const resource_ref_id id{ptr.resource->get_user_id()};
             guid = score::set_bits< std::uint32_t >( guid, k_resource_guid_id_range, id.resource_id );
             guid = score::set_bits< std::uint32_t >( guid, k_resource_guid_type_range, id.section_type );
             std::string temp_data{};
@@ -212,7 +212,7 @@ namespace cdc_lib::resource::tras::pc_w
         }
         for( const auto& ptr : resource_ptrs )
         {
-            resource_ref_id id{ptr.resource->get_user_id()};
+            const resource_ref_id id{ptr.resource->get_user_id()};
             std::uint32_t packed = 0;
             packed = score::set_bits< std::uint32_t >( packed, k_resource_pointer_offset_range, ptr.src_ptr_offset / 4 );
             packed = score::set_bits< std::uint32_t >( packed, k_resource_pointer_type_range, id.section_type );

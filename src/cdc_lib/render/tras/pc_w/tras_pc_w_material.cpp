@@ -128,7 +128,7 @@ namespace cdc_lib::render::tras::pc_w
         }
         void read( score::binary_io::input_interface& a_interface, material_data::node_flags& a_flags )
         {
-            auto flags = read< std::uint32_t >( a_interface );
+            const auto flags = read< std::uint32_t >( a_interface );
             assert( (flags & ~node_flags::k_combined_mask) == 0 );
             a_flags.irradiance_lighting = check_flag( flags, node_flags::k_irradiance_lighting );
             a_flags.predator = check_flag( flags, node_flags::k_predator );
@@ -166,14 +166,14 @@ namespace cdc_lib::render::tras::pc_w
             if( auto* vs = a_istream.try_read_relocation() )
                 a_pass.vertex_shader = vs->resource.value();
             read( a_istream, a_pass.flags );
-            auto read_texture_list = [&a_istream]( material_data::texture_list& a_list )
+            const auto read_texture_list = [&a_istream]( material_data::texture_list& a_list )
             {
                 const auto texture_count = read< std::uint8_t >( a_istream );
                 a_list.textures.reserve( texture_count );
                 read( a_istream, a_list.instance_texture_count );
                 read( a_istream, a_list.material_texture_count );
                 read( a_istream, a_list.first_instance_texture );
-                auto te_scope = resource::reloc_istream_scope{a_istream, "mat.texture_entry"};
+                const auto te_scope = resource::reloc_istream_scope{a_istream, "mat.texture_entry"};
                 if( !te_scope )
                     return;
                 for( std::uint32_t i = 0; i < texture_count; i++ )
@@ -191,11 +191,11 @@ namespace cdc_lib::render::tras::pc_w
                     read( a_istream, te.filter );
                 }
             };
-            auto read_constant_list = [&a_istream]( material_data::constant_list& a_list )
+            const auto read_constant_list = [&a_istream]( material_data::constant_list& a_list )
             {
                 const auto constant_count = read< std::uint32_t >( a_istream );
                 a_list.constants.reserve( constant_count );
-                auto cl_scope = resource::reloc_istream_scope{ a_istream, "mat.constant_list" };
+                const auto cl_scope = resource::reloc_istream_scope{ a_istream, "mat.constant_list" };
                 if( !cl_scope )
                     return;
 
@@ -215,7 +215,7 @@ namespace cdc_lib::render::tras::pc_w
             read( a_istream, a_pass.vertex_constants.first_extended_instance_param );
             read( a_istream, a_pass.vertex_constants.extended_instance_param_count );
             {
-                auto hdd_scope = resource::reloc_istream_scope{a_istream, "mat.pass.hull_domain_data"};
+                const auto hdd_scope = resource::reloc_istream_scope{a_istream, "mat.pass.hull_domain_data"};
                 if( !hdd_scope )
                     return;
                 a_pass.hull_domain_shader_data = material_data::hull_domain_data{};
@@ -265,7 +265,7 @@ namespace cdc_lib::render::tras::pc_w
         {
             if( name_offset == 0u )
                 return "<unnamed>";
-            auto resource_name_scope = resource::reloc_istream_scope{a_istream, name_offset, "mat.resource_name"};
+            const auto resource_name_scope = resource::reloc_istream_scope{a_istream, name_offset, "mat.resource_name"};
             std::string resource_name;
             resource_name.resize( k_resource_name_size );
             a_istream.read( std::as_writable_bytes( std::span{resource_name} ) );
@@ -275,7 +275,7 @@ namespace cdc_lib::render::tras::pc_w
         assert( magic == k_magic );
         for( std::uint32_t i = 0; i < material_data::k_max_passes; i++ )
         {
-            auto scope = resource::reloc_istream_scope{a_istream, "mat.pass"};
+            const auto scope = resource::reloc_istream_scope{a_istream, "mat.pass"};
             if( !scope )
                 continue;
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)

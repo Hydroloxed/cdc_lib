@@ -99,7 +99,7 @@ namespace cdc_lib::resource
 
         db_object read_db_object( score::binary_io::input_interface& a_input )
         {
-            auto path = score::binary_io::read_fixed_string( a_input, read< std::uint16_t >( a_input ) );
+            const auto path = score::binary_io::read_fixed_string( a_input, read< std::uint16_t >( a_input ) );
             cooked_resource_guid primary_resource_ref{};
             read( a_input, primary_resource_ref );
             db_object object{path};

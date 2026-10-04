@@ -137,7 +137,7 @@ namespace cdc_lib::file::tras::pc_w
     }
     [[nodiscard]] bool is_cdrm( score::binary_io::input_interface& a_input )
     {
-        std::string magic = read_fixed_string( a_input, 4 );
+        const std::string magic = read_fixed_string( a_input, 4 );
         a_input.seek( a_input.tell() - 4 );
         return magic == k_magic;
     }
@@ -176,7 +176,7 @@ namespace cdc_lib::file::tras::pc_w
         align_to( a_input, k_block_alignment );
         for( const auto& b : blocks )
         {
-            std::string compressed = read_fixed_string( a_input, b.compressed_size );
+            const std::string compressed = read_fixed_string( a_input, b.compressed_size );
             out_data += decompress( compressed, b );
             if( &b != &blocks.back() )
                 align_to( a_input, k_block_alignment );

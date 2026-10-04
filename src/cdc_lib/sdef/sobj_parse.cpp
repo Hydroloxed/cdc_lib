@@ -8,7 +8,7 @@ namespace cdc_lib::sdef
     {
         std::string read_string( resource::reloc_istream& a_data )
         {
-            auto scope = resource::reloc_istream_scope{a_data, "sdef.string"};
+            const auto scope = resource::reloc_istream_scope{a_data, "sdef.string"};
             if( !scope )
                 return {};
             return score::binary_io::read_c_string( a_data );
@@ -23,7 +23,7 @@ namespace cdc_lib::sdef
             node.parent = a_parent;
             if( a_sdef->is_struct() )
             {
-                for( auto& child : a_sdef->children )
+                for( const auto& child : a_sdef->children )
                 {
                     node.children.push_back( std::make_unique< sobj_node >(
                         parse_sobj_impl( child.get(), &node, a_data ) ) );
@@ -31,7 +31,7 @@ namespace cdc_lib::sdef
             }
             else if( a_sdef->is_var() )
             {
-                auto& var = a_sdef->as_var();
+                const auto& var = a_sdef->as_var();
                 using enum sdef_primitive_type;
                 assert( var.type.primitive_type != none );
                 switch( var.type.primitive_type )

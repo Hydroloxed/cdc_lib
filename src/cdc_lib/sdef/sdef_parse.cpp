@@ -13,7 +13,7 @@ namespace cdc_lib::sdef
 {
     namespace
     {
-        bool check_type( tinyxml2::XMLElement* a_xml_node, std::string_view a_name )
+        bool check_type( const tinyxml2::XMLElement* a_xml_node, std::string_view a_name )
         {
             assert( a_xml_node );
 
@@ -27,15 +27,15 @@ namespace cdc_lib::sdef
             return std::ranges::equal( name, a_name, comp_ci );
         }
 
-        void require_string_attr( tinyxml2::XMLElement* a_node, const char* a_name )
+        void require_string_attr( const tinyxml2::XMLElement* a_node, const char* a_name )
         {
             assert( a_node );
             if( a_node->FindAttribute( a_name ) == nullptr )
                 throw std::runtime_error{fmt::format("Element '{}' is missing required attribute '{}'", a_node->Name(), a_name)};
         }
 
-        std::optional< std::string> get_string_attr( tinyxml2::XMLElement* a_xml_node,
-                                                     const char* a_name )
+        std::optional<std::string> get_string_attr( const tinyxml2::XMLElement* a_xml_node,
+                                                    const char* a_name )
         {
             assert( a_xml_node );
 

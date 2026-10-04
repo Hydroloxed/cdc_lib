@@ -59,7 +59,7 @@ namespace cdc_lib::resource::tras::pc_w
     {
         auto object = std::make_unique< cooked_resolve_object >();
 
-        [[maybe_unused]] auto version = read< std::uint32_t >( a_input_interface );
+        [[maybe_unused]] const auto version = read< std::uint32_t >( a_input_interface );
         assert( version == k_version ); // TODO: throw exception
         const auto include_length  = read< std::uint32_t >( a_input_interface );
         const auto depends_length  = read< std::uint32_t >( a_input_interface );
@@ -96,7 +96,7 @@ namespace cdc_lib::resource::tras::pc_w
 
         object->primary_section = primary_section == k_no_primary_section
                                 ? nullptr : &object->sections[ primary_section ];
-        auto strings = read_string_list( a_input_interface, include_length + depends_length );
+        const auto strings = read_string_list( a_input_interface, include_length + depends_length );
         for( std::size_t pos = 0; const auto& string : strings )
         {
             if( pos < include_length )

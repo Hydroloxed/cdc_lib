@@ -84,7 +84,7 @@ namespace cdc_lib::resource
         }
         scope* start_scope( std::string_view a_debug_name = "<unnamed>" )
         {
-            auto* relocation_here = try_read_relocation();
+            const auto* relocation_here = try_read_relocation();
             if( !relocation_here || relocation_here->is_external() )
                 return nullptr;
             return start_scope( relocation_here->dest_ptr_offset + top_level_scope.offset, a_debug_name );

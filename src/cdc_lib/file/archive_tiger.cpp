@@ -93,7 +93,7 @@ namespace cdc_lib::file
 
     [[nodiscard]] std::uint64_t hash_filename( const archive& a_archive, std::string_view a_filename )
     {
-        std::string real_filename = a_archive.config_name + "\\" + std::string{a_filename};
+        const std::string real_filename = a_archive.config_name + "\\" + std::string{a_filename};
         return core::crc32(real_filename);
     }
 
@@ -123,7 +123,7 @@ namespace cdc_lib::file
     {
         archive_multifs ret{};
         ret.gamepath = a_game_path.string();
-        std::array known_archives =
+        const std::array known_archives =
         {
             "bigfile.000.tiger",
             // "bigfile_ENGLISH.000.tiger" - TODO: add support for localized bigfiles

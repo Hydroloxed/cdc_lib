@@ -11,8 +11,8 @@ namespace cdc_lib::render::tras::pc_w
 
         std::uint32_t base_offset = a_input.tell();
 
-        auto offset_table_size = read< std::uint32_t >( a_input );
-        [[maybe_unused]] auto total_data_size = read< std::uint32_t >( a_input );
+        const auto offset_table_size = read< std::uint32_t >( a_input );
+        [[maybe_unused]] const auto total_data_size = read< std::uint32_t >( a_input );
 
         table->shaders.reserve( offset_table_size >> 2u );
         std::vector< std::uint32_t > shader_offsets;
@@ -30,7 +30,7 @@ namespace cdc_lib::render::tras::pc_w
             if( offset == static_cast< std::uint32_t >( -1 ) )
                 continue;
             a_input.seek( offset + base_offset );
-            auto cur = std::make_shared< shader >();
+            const auto cur = std::make_shared< shader >();
             cur->id.hi = read< std::uint32_t >( a_input );
             cur->id.size = read< std::uint32_t >( a_input );
             cur->id.lo = read< std::uint64_t >( a_input );
