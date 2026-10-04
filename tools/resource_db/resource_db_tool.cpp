@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cdc_lib/core/core_crc32.h>
 #include <cdc_lib/file/archive_fs.h>
-#include <cdc_lib/file/tras/pc_w/tras_pc_w_compression.h>
 #include <cdc_lib/resource/rsrc_resolve_object.h>
 #include <cdc_lib/resource/rsrc_resource_db.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resolve_object.h>

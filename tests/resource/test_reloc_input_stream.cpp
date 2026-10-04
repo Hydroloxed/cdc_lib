@@ -1,7 +1,6 @@
-#include "cdc_lib/resource/rsrc_relocation.h"
 #include <boost/ut.hpp>
 #include <cdc_lib/resource/rsrc_reloc_input_stream.h>
-#include <cdc_lib/resource/tras/pc_w/tras_pc_w_relocation.h>
+#include <cdc_lib/resource/rsrc_relocation.h>
 #include <score/binary_io/binary_io.h>
 
 boost::ut::suite< "resource_reloc_input_stream" > suite_reloc_input_stream = []

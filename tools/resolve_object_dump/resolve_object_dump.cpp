@@ -4,7 +4,6 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <score/binary_io/binary_io.h>
-#include <score/containers/simple_lookup_table.h>
 
 const char* get_section_short_name( cdc_lib::resource::cooked_resolve_section_type a_section_type )
 {
