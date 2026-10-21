@@ -30,6 +30,55 @@ SOBJs are used for data. The tree for an SOBJ closely follows its definition
     [...]
     (Source: excerpt from TRAS_Nov16_2 laracroft.drm)
 
+The equivalent SDEF/dtpinc would look like:
+
+    <Module Name="cdc.dtp.actiongraph.actiongraph">
+        <Struct Name="ActionGraph">
+            <Enum Name="NodeEnum" Underlying="int16">
+                [...]
+                <EnumValue Name="Misc_FrameTrigger" Value="309" />
+                [...]
+            </Enum>
+
+            <!-- Like tagged union -->
+            <Variant Name="NodeData" Nameless="True">
+                [...]
+                <!-- FrameTriggerNode is a struct -->
+                <VariantType EnumValue="Misc_FrameTrigger" Value="FrameTriggerNode" />
+                [...]
+            </Variant>
+
+            <Struct Name="ActiongraphNodeType">
+                <Field Name="NodeType" Type="NodeEnum" />
+                <Field Name="ActiongraphNodeProperties" Type="NodeData" VariantTypeField="NodeType" />
+            </Struct>
+
+            [...]
+
+            <Struct Name="Node">
+                <Field Name="ActiongraphNode" Type="ActiongraphNodeType" />
+                <Field Name="DebugFlags" Type="GenGraphNodeDebugFlags" />
+                <Field Name="m_debugName" Type="string" />
+            </Struct>
+
+            [...]
+
+            <Field Name="NumNodes" Type="uint32" />
+            <Field Name="NumEdges" Type="uint32" />
+            <Field Name="NodeList" Type="Node*" />
+            <Field Name="EdgeList" Type="Edge*" />
+            <Field Name="NumInputs" Type="uint32" />
+            <Field Name="NumOutputs" Type="uint32" />
+            <Field Name="Inputs" Type="ScriptableNodeInputSocket*" />
+            <Field Name="Outputs" Type="GraphSocket*" />
+            <Field Name="IntroPanelInput" Type="GraphsInputsStruct" />
+            <Field Name="IntroPanelOutput" Type="GraphsOutputsStruct" />
+            <Bitfield>
+                <Field Name="RTEFlag" Type="uint8" BitWidth="1" />
+            </Bitfield>
+        </Struct>
+    </Module>
+
 Some assumptions about how CDC does stuff:
  - The root "Item" contains the type (I think in CDC this would be called the "dtp")
    of the root subsection, like:
