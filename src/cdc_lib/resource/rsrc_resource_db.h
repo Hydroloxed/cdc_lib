@@ -63,6 +63,7 @@ namespace cdc_lib::resource
         [[nodiscard]] std::optional< std::size_t > find_section_index( cooked_resource_guid a_guid ) const;
         [[nodiscard]] std::span< const cooked_resource_guid > iterate_resource_references() const noexcept { return std::span{referenced_resources}; }
         void add_resource_ref( cooked_resource_guid a_guid ) { referenced_resources.push_back( a_guid ); }
+        void reserve_resource_refs( std::size_t a_count ) { referenced_resources.reserve( a_count ); }
         void load_sync();
 
     private:
@@ -86,6 +87,7 @@ namespace cdc_lib::resource
 
         [[nodiscard]] bool empty() const { return resources.empty(); }
         [[nodiscard]] bool contains( cooked_resource_guid a_guid ) const { return resources.contains( a_guid ); }
+        void reserve_resources(std::size_t a_count) { resources.reserve(a_count); }
         void insert( cooked_resource_guid a_guid, resource&& a_resource );
         void insert( std::string_view a_path, db_object&& a_object );
         void insert( db_object&& a_object ) { insert( a_object.get_path(), std::move( a_object ) ); }

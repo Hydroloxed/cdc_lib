@@ -105,6 +105,7 @@ namespace cdc_lib::resource
             db_object object{path};
             object.set_primary_resource_ref( primary_resource_ref );
             const auto ref_count = read< std::uint32_t >( a_input );
+            object.reserve_resource_refs( ref_count );
             for( std::uint32_t i = 0u; i < ref_count; ++i )
             {
                 cooked_resource_guid ref{};
@@ -126,6 +127,7 @@ namespace cdc_lib::resource
             throw std::runtime_error{fmt::format( "Invalid version, found {}, expected {}", version, k_version )};
         const auto resource_count = score::binary_io::read< std::uint32_t >( a_input );
         const auto object_count = score::binary_io::read< std::uint32_t >( a_input );
+        db.reserve_resources(resource_count);
         for( std::uint64_t i = 0u; i < resource_count; ++i )
         {
             cooked_resource_guid guid{};
@@ -207,7 +209,7 @@ namespace cdc_lib::resource
         assert( (a_resource.db == nullptr || a_resource.db == this)
             && "Trying to transfer a resource from one db to another. This will open up all sorts of issues that I'm not ready to deal with" );
         a_resource.db = this;
-        resources[a_guid] = a_resource;
+        resources.insert_or_assign( a_guid, std::move( a_resource ) );
     }
 
     void resource_db::insert( std::string_view a_path, db_object&& a_object )
