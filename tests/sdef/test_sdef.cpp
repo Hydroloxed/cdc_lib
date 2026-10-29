@@ -48,13 +48,13 @@ boost::ut::suite< "sdef" > sdef = []
 
     test( "can add a var" ) = []
     {
-        const auto sdef_tree = cdc_lib::sdef::parse_sdef( R"(<struct name="SomeSuperStruct"><var name="SomeVar" type="int" /></struct>)" );
+        const auto sdef_tree = cdc_lib::sdef::parse_sdef( R"(<struct name="SomeSuperStruct"><var name="SomeVar" type="int32" /></struct>)" );
         expect( sdef_tree.is_struct() );
         expect( sdef_tree.as_struct().name == "SomeSuperStruct" );
         expect( sdef_tree.children.size() == 1 );
         expect( sdef_tree.children.at(0)->is_var() );
         expect( sdef_tree.children.at(0)->as_var().name == "SomeVar" );
-        expect( sdef_tree.children.at(0)->as_var().type.type_name == "int" );
+        expect( sdef_tree.children.at(0)->as_var().type.type_name == "int32" );
     };
 
     test( "a var needs a name and a type" ) = []
