@@ -10,6 +10,7 @@ target_sources( cdc_lib_tests PRIVATE
     core/test_crc32.cpp
     file/test_compression.cpp
     resource/test_reloc_input_stream.cpp
+    resource/test_resolve_object.cpp
     sdef/test_sdef.cpp
     sdef/test_sobj.cpp
     run_tests.cpp )
