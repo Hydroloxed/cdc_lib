@@ -100,6 +100,11 @@ boost::ut::suite< "sdef" > sdef = []
         expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<Enum underlying="uint32"></Enum>)" ); } ) );
     };
 
+    test( "an enum must have a valid underlying type" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<Enum name="SomeSuperEnum" underlying="uint651243"></Enum>)" ); } ) );
+    };
+
     test( "can add an empty enum correctly" ) = []
     {
         using namespace cdc_lib::sdef;

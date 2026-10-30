@@ -82,6 +82,9 @@ namespace cdc_lib::sdef
 
                 std::string underlying = get_string_attr( a_xml_node, "underlying" ).value();
                 a_node.as_enum().underlying_type = get_primitive_type( underlying );
+
+                if( a_node.as_enum().underlying_type == sdef_primitive_type::none )
+                    throw std::runtime_error{"Invalid type " + underlying};
             }
             else if( check_type( a_xml_node, "var" ) )
             {
