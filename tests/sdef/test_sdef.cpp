@@ -105,6 +105,17 @@ boost::ut::suite< "sdef" > sdef = []
         expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<Enum name="SomeSuperEnum" underlying="uint651243"></Enum>)" ); } ) );
     };
 
+    test( "enums must be declared before use" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(
+            <Struct name="SomeSuperStruct">
+                <Var name="SomeSuperVar" type="SomeSuperEnum" />
+                <Enum name="SomeSuperEnum" underlying="uint651243">
+                </Enum>
+            </Struct>)" ); } ) );
+    };
+
+
     test( "can add an empty enum correctly" ) = []
     {
         using namespace cdc_lib::sdef;
