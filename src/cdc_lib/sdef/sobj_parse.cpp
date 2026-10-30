@@ -1,6 +1,9 @@
 #include "sobj_parse.h"
 #include <cassert>
+#include <cdc_lib/resource/rsrc_reloc_input_stream.h>
 #include <cdc_lib/sdef/sdef_node.h>
+#include <cdc_lib/sdef/sdef_type.h>
+#include <cdc_lib/sdef/sobj_node.h>
 #include <score/binary_io/binio_strings.h>
 
 namespace cdc_lib::sdef
@@ -13,6 +16,35 @@ namespace cdc_lib::sdef
             if( !scope )
                 return {};
             return score::binary_io::read_c_string( a_data );
+        }
+
+        sobj_prim_data read_primitive( resource::reloc_istream& a_data,
+                                       sdef_primitive_type a_prim_type )
+        {
+            using enum sdef_primitive_type;
+
+            switch( a_prim_type )
+            {
+                case none: assert(false && "Compound types not supported"); break;
+                // TODO: Should we check/warn if we read something other
+                //       than 1 or 0? That would be a good chance to catch
+                //       possible errors in SDEF definitions...
+                // clang-format off
+                case bool8:   return bool{read< std::uint8_t >(a_data) != 0};
+                case float32: return read< float >(a_data);
+                case float64: return read< double >(a_data);
+                case uint8:   return std::uintmax_t{read< std::uint8_t >(a_data)};
+                case uint16:  return std::uintmax_t{read< std::uint16_t >(a_data)};
+                case uint32:  return std::uintmax_t{read< std::uint32_t >(a_data)};
+                case uint64:  return std::uintmax_t{read< std::uint64_t >(a_data)};
+                case int8:    return read< std::int8_t >(a_data);
+                case int16:   return read< std::int16_t >(a_data);
+                case int32:   return read< std::int32_t >(a_data);
+                case int64:   return read< std::int64_t >(a_data);
+                case string:  return read_string( a_data );
+                // clang-format on
+                default: assert(false && "Unsupported primitive type. Bug in sobj::read_primitive"); break;
+            }
         }
 
         sobj_node parse_sobj_impl( sdef_node* a_sdef,
@@ -33,29 +65,18 @@ namespace cdc_lib::sdef
             else if( a_sdef->is_var() )
             {
                 const auto& var = a_sdef->as_var();
-                using enum sdef_primitive_type;
-                assert( var.type.primitive_type != none );
-                switch( var.type.primitive_type )
+                if( var.type.primitive_type == sdef_primitive_type::none )
                 {
-                    case none: assert(false && "Compound types not supported"); break;
-                    // TODO: Should we check/warn if we read something other
-                    //       than 1 or 0? That would be a good chance to catch
-                    //       possible errors in SDEF definitions...
-                    // clang-format off
-                    case bool8:   node.var_data.data = bool{read< std::uint8_t >(a_data) != 0}; break;
-                    case float32: node.var_data.data = read< float >(a_data); break;
-                    case float64: node.var_data.data = read< double >(a_data); break;
-                    case uint8:   node.var_data.data = std::uintmax_t{read< std::uint8_t >(a_data)}; break;
-                    case uint16:  node.var_data.data = std::uintmax_t{read< std::uint16_t >(a_data)}; break;
-                    case uint32:  node.var_data.data = std::uintmax_t{read< std::uint32_t >(a_data)}; break;
-                    case uint64:  node.var_data.data = std::uintmax_t{read< std::uint64_t >(a_data)}; break;
-                    case int8:    node.var_data.data = read< std::int8_t >(a_data); break;
-                    case int16:   node.var_data.data = read< std::int16_t >(a_data); break;
-                    case int32:   node.var_data.data = read< std::int32_t >(a_data); break;
-                    case int64:   node.var_data.data = read< std::int64_t >(a_data); break;
-                    case string:  node.var_data.data = read_string( a_data ); break;
-                    // clang-format on
-                    default: assert(false && "Unsupported primitive type. Bug in parse_sobj"); break;
+                    auto* type = var.type.type;
+                    assert( type );
+                    if( type->is_enum() )
+                        node.var_data.data = read_primitive( a_data, type->as_enum().underlying_type );
+                    else
+                        assert( false && "Only enums are implemented for now" );
+                }
+                else
+                {
+                    node.var_data.data = read_primitive( a_data, var.type.primitive_type );
                 }
             }
             return node;

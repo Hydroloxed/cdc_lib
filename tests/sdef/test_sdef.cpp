@@ -1,3 +1,4 @@
+#include "cdc_lib/sdef/sdef_type.h"
 #include <boost/ut.hpp>
 #include <cdc_lib/sdef/sdef_parse.h>
 
@@ -85,5 +86,44 @@ boost::ut::suite< "sdef" > sdef = []
             const auto sdef_tree = parse_sdef( sdef_str );
             expect( sdef_tree.children.at(0)->as_var().type.primitive_type == primitive_type ) << type;
         }
+    };
+
+    test( "throws on invalid variable types" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<struct name="SomeSuperStruct"><var name="SomeVar" type="MadeUpType"/></struct>)" ); } ) );
+    };
+
+    test( "an enum needs a name and an underlying type" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<Enum></Enum>)" ); } ) );
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<Enum name="SomeSuperEnum"></Enum>)" ); } ) );
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(<Enum underlying="uint32"></Enum>)" ); } ) );
+    };
+
+    test( "can add an empty enum correctly" ) = []
+    {
+        using namespace cdc_lib::sdef;
+
+        const auto sdef_tree = cdc_lib::sdef::parse_sdef( R"(<Enum name="SomeSuperEnum" underlying="uint32"></Enum>)" );
+        expect( sdef_tree.is_enum() );
+        expect( sdef_tree.as_enum().name == "SomeSuperEnum" );
+        expect( sdef_tree.as_enum().underlying_type == sdef_primitive_type::uint32 );
+        expect( sdef_tree.children.empty() );
+    };
+
+    test( "enums types are resolved correctly" ) = []
+    {
+        using namespace cdc_lib::sdef;
+
+        const auto sdef_tree = cdc_lib::sdef::parse_sdef( R"(
+            <Struct name="XYZ">
+                <Enum name="SomeSuperEnum" underlying="uint32"></Enum>
+                <Var name="SomeSuperVariable" type="SomeSuperEnum" />
+            </Struct>)" );
+        expect( eq(sdef_tree.children.at(0)->as_enum().name, std::string{"SomeSuperEnum"}) );
+        expect( eq(sdef_tree.children.at(1)->as_var().name, std::string{"SomeSuperVariable"}) );
+        expect( eq(sdef_tree.children.at(1)->as_var().type.type_name, std::string{"SomeSuperEnum"}) );
+        expect( sdef_tree.children.at(1)->as_var().type.primitive_type == sdef_primitive_type::none );
+        expect( eq(sdef_tree.children.at(1)->as_var().type.type, &*sdef_tree.children.at(0)) );
     };
 };

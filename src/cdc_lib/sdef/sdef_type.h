@@ -4,6 +4,8 @@
 
 namespace cdc_lib::sdef
 {
+    struct sdef_node;
+
     enum class sdef_primitive_type
     {
         none,
@@ -25,6 +27,8 @@ namespace cdc_lib::sdef
     {
         std::string type_name{};
         sdef_primitive_type primitive_type{sdef_primitive_type::none};
+
+        sdef_node* type{nullptr}; //< For enums, structs, variants
     };
 }
 

@@ -10,9 +10,11 @@ namespace cdc_lib::sdef
 {
     struct sdef_node;
 
+    using sobj_prim_data = std::variant<bool, float, double, std::intmax_t, std::uintmax_t, std::string>;
+
     struct sobj_var
     {
-        std::variant<bool, float, double, std::intmax_t, std::uintmax_t, std::string> data{};
+        sobj_prim_data data{};
 
         [[nodiscard]] bool is_bool() const noexcept { return std::holds_alternative<bool>(data); }
         [[nodiscard]] bool is_float32() const noexcept { return std::holds_alternative<float>(data); }

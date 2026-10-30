@@ -199,4 +199,17 @@ boost::ut::suite< "sobj" > sobj = []
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
         expect( eq(sobj.children.at(0)->var_data.as_string(), std::string{}) );
     };
+
+    test( "enums are parsed as their underlying type" ) = []
+    {
+        const std::string data = std::string{"\x12\x34", 2};
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(
+            <Struct name="XYZ">
+                <Enum name="SomeSuperEnum" underlying="uint16"></Enum>
+                <Var name="SomeSuperVariable" type="SomeSuperEnum" />
+            </Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        expect( eq(sobj.children.at(1)->var_data.as_uint(), 0x3412) );
+    };
 };

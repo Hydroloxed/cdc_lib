@@ -1,4 +1,5 @@
 #include "sdef_parse.h"
+#include "cdc_lib/sdef/sdef_type.h"
 #include <algorithm>
 #include <cassert>
 #include <cctype>
@@ -71,6 +72,17 @@ namespace cdc_lib::sdef
                 a_node.data = sdef_struct{};
                 a_node.as_struct().name = get_string_attr( a_xml_node, "name" ).value();
             }
+            else if( check_type( a_xml_node, "enum" ) )
+            {
+                require_string_attr( a_xml_node, "name" );
+                require_string_attr( a_xml_node, "underlying" );
+
+                a_node.data = sdef_enum{};
+                a_node.as_enum().name = get_string_attr( a_xml_node, "name" ).value();
+
+                std::string underlying = get_string_attr( a_xml_node, "underlying" ).value();
+                a_node.as_enum().underlying_type = get_primitive_type( underlying );
+            }
             else if( check_type( a_xml_node, "var" ) )
             {
                 require_string_attr( a_xml_node, "name" );
@@ -78,9 +90,17 @@ namespace cdc_lib::sdef
 
                 a_node.data = sdef_var{};
                 a_node.as_var().name = get_string_attr( a_xml_node, "name" ).value();
-                const auto type = sdef_type_ref{get_string_attr( a_xml_node, "type" ).value()};
-                a_node.as_var().type = type;
+                const auto type_name = get_string_attr( a_xml_node, "type" ).value();
+                a_node.as_var().type = sdef_type_ref{};
+                a_node.as_var().type.type_name = type_name;
                 a_node.as_var().type.primitive_type = get_primitive_type( a_node.as_var().type.type_name );
+
+                if( a_node.as_var().type.primitive_type == sdef_primitive_type::none )
+                {
+                    a_node.as_var().type.type = a_node.find_type( type_name );
+                    if( a_node.as_var().type.type == nullptr )
+                        throw std::runtime_error{"Invalid type " + type_name};
+                }
             }
             else
             {
