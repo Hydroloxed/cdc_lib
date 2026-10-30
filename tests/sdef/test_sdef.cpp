@@ -40,6 +40,13 @@ boost::ut::suite< "sdef" > sdef = []
         expect( sdef_tree.as_struct().name == "SomeSuperStruct" );
     };
 
+    test( "sets parent correctly" ) = []
+    {
+        const auto sdef_tree = cdc_lib::sdef::parse_sdef( "<struct name=\"SomeSuperStruct\"><var name=\"SomeVar\" type=\"int32\" /></struct>" );
+        expect( sdef_tree.is_struct() );
+        expect( eq(sdef_tree.children.at(0)->parent, &sdef_tree) );
+    };
+
     test( "element names are case-insensitive") = []
     {
         const auto sdef_tree = cdc_lib::sdef::parse_sdef( "<Struct name=\"SomeSuperStruct\"></Struct>" );
