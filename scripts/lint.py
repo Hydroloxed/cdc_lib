@@ -5,6 +5,13 @@ cmake_files  = glob.glob("src/**/CMakeLists.txt", recursive=True)
 source_files = glob.glob("src/**/*.cpp", recursive=True)
 header_files = glob.glob("src/**/*.h", recursive=True)
 
+# Finds the full (with directories) filename of `filename`
+def find_full_filename(source_file):
+    for file in source_files + header_files:
+        if file.endswith("/" + source_file):
+            return file
+    return None
+
 # For every call to target_sources in cmake_file, return the list of arguments
 # to target_sources.
 # Example: []
@@ -35,11 +42,32 @@ def lint_files_not_in_cmakelists():
             if file_name in remaining_files:
                 remaining_files.remove(file_name)
     for file in list(remaining_files):
-        print(f"{file}: warning: file is not added in CMakeLists.txt (files-not-in-cmakelists)")
+        print(f"{find_full_filename(file)}: warning: file is not added in CMakeLists.txt (file-not-in-cmakelists)")
     return len(remaining_files)
+
+# Check for cdc_lib and score header files included with quotes:
+#   #include "cdc_lib/core/core_crc32.h" // Bad
+#   #include <cdc_lib/core/core_crc32.h> // Good
+def lint_file_included_with_quotes():
+    all_files = sorted(source_files + header_files)
+    warnings = 0
+    for file in all_files:
+        with open(file, "r") as f:
+            for lineno, line in enumerate(f.read().splitlines()):
+                if line.strip().startswith("#include \"cdc_lib")\
+                   or line.strip().startswith("#include \"score") or False:
+                   print(f"{file}:{lineno+1}: warning: use `#include <>` (file-included-with-quotes)")
+                   print()
+                   print(f"  {line}")
+                   print(f"  {' ' * line.find("#include")}^")
+                   print()
+                   warnings += 1
+    return warnings
+
 
 num_warnings = 0
 num_warnings += lint_files_not_in_cmakelists()
+num_warnings += lint_file_included_with_quotes()
 
 if num_warnings != 0:
     print(f"\n{num_warnings} warnings generated.")
