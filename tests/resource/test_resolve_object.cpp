@@ -1,9 +1,7 @@
-#include <boost/ut.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <cdc_lib/resource/rsrc_reloc_input_stream.h>
 #include <cdc_lib/resource/tras/pc_w/tras_pc_w_resolve_object.h>
 #include <score/binary_io/binary_io.h>
-
-using namespace boost::ut;
 
 namespace
 {
@@ -15,9 +13,9 @@ namespace
     }
 }
 
-suite< "resource_resolve_object" > suite_resolve_object = []
+TEST_CASE("resolve_object", "[resource]")
 {
-    test("empty") = []
+    SECTION("empty")
     {
         const char data[] = "\x16\0\0\0" // versionNumber
                             "\0\0\0\0" // drmIncludeLength
@@ -29,12 +27,12 @@ suite< "resource_resolve_object" > suite_resolve_object = []
                             "\xff\xff\xff\xff" // primarySection
                              ;
         auto object = load_ro(data, sizeof data);
-        expect(eq(object->sections.size(), 0));
-        expect(eq(object->includes.size(), 0));
-        expect(eq(object->objects_that_depend_on.size(), 0));
+        CHECK(object->sections.size() == 0);
+        CHECK(object->includes.size() == 0);
+        CHECK(object->objects_that_depend_on.size() == 0);
     };
 
-    test("-1 means no primary sections") = []
+    SECTION("-1 means no primary sections")
     {
         const char data[] = "\x16\0\0\0" // versionNumber
                             "\0\0\0\0" // drmIncludeLength
@@ -46,12 +44,12 @@ suite< "resource_resolve_object" > suite_resolve_object = []
                             "\xff\xff\xff\xff" // primarySection
                              ;
         auto object = load_ro(data, sizeof data);
-        expect(eq(object->primary_section, nullptr));
+        CHECK(object->primary_section == nullptr);
     };
 
-    // FIXME: Should throw, not assert
-    skip / test("throws on wrong version number") = []
+    SECTION("throws on wrong version number")
     {
+        SKIP("Should throw, not assert");
         const char data[] = "\x15\0\0\0" // versionNumber
                             "\0\0\0\0" // drmIncludeLength
                             "\0\0\0\0" // drmDepLength
@@ -61,10 +59,10 @@ suite< "resource_resolve_object" > suite_resolve_object = []
                             "\0\0\0\0" // numSections
                             "\xff\xff\xff\xff" // primarySection
                              ;
-        expect(throws([&data]{load_ro(data, sizeof data); }));
+        CHECK_THROWS(load_ro(data, sizeof data));
     };
 
-    test("single section") = []
+    SECTION("single section")
     {
         const char data[] = "\x16\0\0\0" // versionNumber
                             "\0\0\0\0" // drmIncludeLength
@@ -89,11 +87,11 @@ suite< "resource_resolve_object" > suite_resolve_object = []
                             "\x33\x33\x33\x33" // decompressedOffset
                              ;
         auto object = load_ro(data, sizeof data);
-        expect(eq(object->sections.size(), 1));
-        expect(eq(object->sections.at(0).size, 0x3412));
-        expect(eq(object->sections.at(0).id, 0x56));
-        expect(eq(object->sections.at(0).extra_data.packed_offset, 0x11111111));
-        expect(eq(object->sections.at(0).extra_data.compressed_size, 0x22222222));
-        expect(eq(object->sections.at(0).extra_data.decompressed_offset, 0x33333333));
+        CHECK(object->sections.size() == 1);
+        CHECK(object->sections.at(0).size == 0x3412);
+        CHECK(object->sections.at(0).id == 0x56);
+        CHECK(object->sections.at(0).extra_data.packed_offset == 0x11111111);
+        CHECK(object->sections.at(0).extra_data.compressed_size == 0x22222222);
+        CHECK(object->sections.at(0).extra_data.decompressed_offset == 0x33333333);
     };
 };
