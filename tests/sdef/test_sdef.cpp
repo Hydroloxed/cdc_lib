@@ -23,6 +23,32 @@ boost::ut::suite< "sdef" > sdef = []
         expect( throws( []{ cdc_lib::sdef::parse_sdef( "<IMadeThisElementUp/>" ); } ) );
     };
 
+    test( "modules need a name and a namespace" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( "<module/>" ); } ) );
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( "<module name=\"ABC123\"/>" ); } ) );
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( "<module namespace=\"cdc\"/>" ); } ) );
+    };
+
+    test( "can add a module" ) = []
+    {
+        const auto sdef_tree = cdc_lib::sdef::parse_sdef( R"(
+            <module name="SomeModule" namespace="cdc">
+            </module>)" );
+        expect( sdef_tree.is_module() );
+        expect( eq( sdef_tree.as_module().name, std::string{"SomeModule"} ) );
+        expect( eq( sdef_tree.as_module().cpp_namespace, std::string{"cdc"} ) );
+    };
+
+    test( "can't have nested modules" ) = []
+    {
+        expect( throws( []{ cdc_lib::sdef::parse_sdef( R"(
+            <module name="SomeModule" namespace="cdc">
+                <module name="SomeOtherModule" namespace="cdc">
+                </module>
+            </module>)" ); } ) );
+    };
+
     test( "can't have multiple root nodes" ) = []
     {
         expect( throws( []{ cdc_lib::sdef::parse_sdef( "<struct /><struct />" ); } ) );

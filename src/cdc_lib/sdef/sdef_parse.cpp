@@ -1,8 +1,9 @@
 #include "sdef_parse.h"
-#include "cdc_lib/sdef/sdef_type.h"
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cdc_lib/sdef/sdef_node.h>
+#include <cdc_lib/sdef/sdef_type.h>
 #include <fmt/format.h>
 #include <optional>
 #include <stdexcept>
@@ -65,7 +66,23 @@ namespace cdc_lib::sdef
 
         void do_subtree( tinyxml2::XMLElement* a_xml_node, sdef_node& a_node )
         {
-            if( check_type( a_xml_node, "struct" ) )
+            if( check_type( a_xml_node, "module" ) )
+            {
+                if( a_node.parent )
+                {
+                    // FIXME: Should we allow non-top-level modules? That would
+                    //        complicate the .h exporter...
+                    throw std::runtime_error{"Module definitions must be top-level"};
+                }
+
+                require_string_attr( a_xml_node, "name" );
+                require_string_attr( a_xml_node, "namespace" );
+
+                a_node.data = sdef_module{};
+                a_node.as_module().name = get_string_attr( a_xml_node, "name" ).value();
+                a_node.as_module().cpp_namespace = get_string_attr( a_xml_node, "namespace" ).value();
+            }
+            else if( check_type( a_xml_node, "struct" ) )
             {
                 require_string_attr( a_xml_node, "name" );
 

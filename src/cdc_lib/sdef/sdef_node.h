@@ -25,13 +25,26 @@ namespace cdc_lib::sdef
         std::string name{};
     };
 
+    struct sdef_module
+    {
+        std::string name{};
+        std::string cpp_namespace{};
+    };
+
     struct sdef_node
     {
         sdef_node* parent{nullptr};
-        std::variant< sdef_enum, sdef_struct, sdef_var > data{};
+        std::variant< sdef_module,
+                      sdef_enum,
+                      sdef_struct,
+                      sdef_var > data{};
         std::vector< std::unique_ptr< sdef_node > > children{};
 
         explicit sdef_node( sdef_node* a_parent ) : parent( a_parent ) {}
+
+        [[nodiscard]] bool is_module() const noexcept { return std::holds_alternative< sdef_module >( data ); }
+        [[nodiscard]] sdef_module& as_module() { return std::get< sdef_module >( data ); }
+        [[nodiscard]] const sdef_module& as_module() const { return std::get< sdef_module >( data ); }
 
         [[nodiscard]] bool is_struct() const noexcept { return std::holds_alternative< sdef_struct >( data ); }
         [[nodiscard]] sdef_struct& as_struct() { return std::get< sdef_struct >( data ); }
