@@ -64,6 +64,21 @@ namespace cdc_lib::sdef
             return sdef_primitive_type::none;
         }
 
+        sdef_type_ref get_type( std::string_view a_type_name, sdef_node* a_node )
+        {
+            sdef_type_ref type;
+            type.type_name = a_type_name;
+            type.primitive_type = get_primitive_type( a_type_name );
+
+            if( type.primitive_type == sdef_primitive_type::none )
+            {
+                type.type = a_node->find_type( a_type_name );
+                if( type.type == nullptr )
+                    throw std::runtime_error{"Invalid type " + std::string{a_type_name}};
+            }
+            return type;
+        }
+
         void do_subtree( tinyxml2::XMLElement* a_xml_node, sdef_node& a_node )
         {
             if( check_type( a_xml_node, "module" ) )
@@ -111,16 +126,7 @@ namespace cdc_lib::sdef
                 a_node.data = sdef_var{};
                 a_node.as_var().name = get_string_attr( a_xml_node, "name" ).value();
                 const auto type_name = get_string_attr( a_xml_node, "type" ).value();
-                a_node.as_var().type = sdef_type_ref{};
-                a_node.as_var().type.type_name = type_name;
-                a_node.as_var().type.primitive_type = get_primitive_type( a_node.as_var().type.type_name );
-
-                if( a_node.as_var().type.primitive_type == sdef_primitive_type::none )
-                {
-                    a_node.as_var().type.type = a_node.find_type( type_name );
-                    if( a_node.as_var().type.type == nullptr )
-                        throw std::runtime_error{"Invalid type " + type_name};
-                }
+                a_node.as_var().type = get_type( type_name, &a_node );
             }
             else
             {
