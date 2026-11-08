@@ -58,8 +58,11 @@ namespace cdc_lib::sdef
             {
                 for( const auto& child : a_sdef->children )
                 {
-                    node.children.push_back( std::make_unique< sobj_node >(
-                        parse_sobj_impl( child.get(), &node, a_data ) ) );
+                    if( child->is_var() )
+                    {
+                        node.children.push_back( std::make_unique< sobj_node >(
+                            parse_sobj_impl( child.get(), &node, a_data ) ) );
+                    }
                 }
             }
             else if( a_sdef->is_var() )

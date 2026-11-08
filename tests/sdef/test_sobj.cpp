@@ -207,6 +207,6 @@ TEST_CASE( "sobj", "[sdef]" )
                 <Var name="SomeSuperVariable" type="SomeSuperEnum" />
             </Struct>)" );
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
-        CHECK(sobj.children.at(1)->var_data.as_uint() == 0x3412);
+        CHECK(sobj.children.at(0)->var_data.as_uint() == 0x3412);
     };
 };
