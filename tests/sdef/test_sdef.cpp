@@ -172,4 +172,21 @@ TEST_CASE( "sdef", "[sdef]" )
         CHECK( sdef_tree.children.at(1)->as_var().type.primitive_type == sdef_primitive_type::none );
         CHECK( sdef_tree.children.at(1)->as_var().type.type == &*sdef_tree.children.at(0) );
     };
+
+    SECTION( "struct types are resolved correctly" )
+    {
+        using namespace cdc_lib::sdef;
+
+        const auto sdef_tree = cdc_lib::sdef::parse_sdef( R"(
+            <Struct name="XYZ">
+                <Struct name="SomeSuperStruct">
+                </Struct>
+                <Var name="SomeSuperVariable" type="SomeSuperStruct" />
+            </Struct>)" );
+        CHECK( sdef_tree.children.at(0)->as_struct().name == "SomeSuperStruct" );
+        CHECK( sdef_tree.children.at(1)->as_var().name == "SomeSuperVariable" );
+        CHECK( sdef_tree.children.at(1)->as_var().type.type_name == "SomeSuperStruct" );
+        CHECK( sdef_tree.children.at(1)->as_var().type.primitive_type == sdef_primitive_type::none );
+        CHECK( sdef_tree.children.at(1)->as_var().type.type == &*sdef_tree.children.at(0) );
+    };
 };

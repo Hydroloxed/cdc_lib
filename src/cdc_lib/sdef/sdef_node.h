@@ -62,7 +62,8 @@ namespace cdc_lib::sdef
         {
             for( auto& child : children )
             {
-                if( child->is_enum() && child->as_enum().name == a_name )
+                if( (child->is_enum() && child->as_enum().name == a_name)
+                 || (child->is_struct() && child->as_struct().name == a_name) )
                     return &*child;
             }
             if( parent )
