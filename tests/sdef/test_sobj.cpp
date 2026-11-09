@@ -209,4 +209,28 @@ TEST_CASE( "sobj", "[sdef]" )
         auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
         CHECK(sobj.children.at(0)->var_data.as_uint() == 0x3412);
     };
+
+    SECTION( "can parse nested structs" )
+    {
+        const std::string data = std::string{"\x12\x34", 2};
+        auto streams = setup_stream( data );
+        auto sdef = cdc_lib::sdef::parse_sdef( R"(
+            <Struct name="Struct1">
+                <Struct name="Struct2">
+                    <Var name="Var3" type="uint8" />
+                </Struct>
+                <Var name="Var1" type="uint8" />
+                <Var name="Var2" type="Struct2" />
+            </Struct>)" );
+        auto sobj = cdc_lib::sdef::parse_sobj( &sdef, streams.ristream );
+        const auto* sdef_var1 = sdef.children.at(1).get();
+        const auto* sdef_var2 = sdef.children.at(2).get();
+        REQUIRE(sobj.children.size() == 2);
+        REQUIRE(sobj.children.at(0)->children.size() == 0);
+        CHECK(sobj.children.at(0)->var_data.as_uint() == 0x12);
+        CHECK(sobj.children.at(0)->sdef == sdef_var1);
+        REQUIRE(sobj.children.at(1)->children.size() == 1);
+        CHECK(sobj.children.at(1)->children.at(0)->var_data.as_uint() == 0x34);
+        CHECK(sobj.children.at(1)->sdef == sdef_var2);
+    };
 };

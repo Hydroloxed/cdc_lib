@@ -70,12 +70,22 @@ namespace cdc_lib::sdef
                 const auto& var = a_sdef->as_var();
                 if( var.type.primitive_type == sdef_primitive_type::none )
                 {
-                    auto* type = var.type.type;
+                    sdef_node* type = var.type.type;
                     assert( type );
                     if( type->is_enum() )
+                    {
                         node.var_data.data = read_primitive( a_data, type->as_enum().underlying_type );
+                    }
+                    else if( type->is_struct() )
+                    {
+                        node = parse_sobj_impl( type, &node, a_data);
+                        // Set the sdef pointer to the variable instead of the struct
+                        node.sdef = a_sdef;
+                    }
                     else
-                        assert( false && "Only enums are implemented for now" );
+                    {
+                        assert( false && "Only enums and structs are implemented for now" );
+                    }
                 }
                 else
                 {
