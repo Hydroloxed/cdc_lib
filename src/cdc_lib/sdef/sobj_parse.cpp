@@ -49,6 +49,40 @@ namespace cdc_lib::sdef
 
         sobj_node parse_sobj_impl( sdef_node* a_sdef,
                                    sobj_node* a_parent,
+                                   resource::reloc_istream& a_data );
+        
+        void read_var( sobj_node& a_node,
+                       sdef_node* a_sdef,
+                       resource::reloc_istream& a_data )
+        {
+            const auto& var = a_sdef->as_var();
+            if( var.type.primitive_type == sdef_primitive_type::none )
+            {
+                sdef_node* type = var.type.type;
+                assert( type );
+                if( type->is_enum() )
+                {
+                    a_node.var_data.data = read_primitive( a_data, type->as_enum().underlying_type );
+                }
+                else if( type->is_struct() )
+                {
+                    a_node = parse_sobj_impl( type, &a_node, a_data);
+                    // Set the sdef pointer to the variable instead of the struct
+                    a_node.sdef = a_sdef;
+                }
+                else
+                {
+                    assert( false && "Only enums and structs are implemented for now" );
+                }
+            }
+            else
+            {
+                a_node.var_data.data = read_primitive( a_data, var.type.primitive_type );
+            }
+        }
+
+        sobj_node parse_sobj_impl( sdef_node* a_sdef,
+                                   sobj_node* a_parent,
                                    resource::reloc_istream& a_data )
         {
             sobj_node node{};
@@ -67,30 +101,7 @@ namespace cdc_lib::sdef
             }
             else if( a_sdef->is_var() )
             {
-                const auto& var = a_sdef->as_var();
-                if( var.type.primitive_type == sdef_primitive_type::none )
-                {
-                    sdef_node* type = var.type.type;
-                    assert( type );
-                    if( type->is_enum() )
-                    {
-                        node.var_data.data = read_primitive( a_data, type->as_enum().underlying_type );
-                    }
-                    else if( type->is_struct() )
-                    {
-                        node = parse_sobj_impl( type, &node, a_data);
-                        // Set the sdef pointer to the variable instead of the struct
-                        node.sdef = a_sdef;
-                    }
-                    else
-                    {
-                        assert( false && "Only enums and structs are implemented for now" );
-                    }
-                }
-                else
-                {
-                    node.var_data.data = read_primitive( a_data, var.type.primitive_type );
-                }
+                read_var( node, a_sdef, a_data );
             }
             return node;
         }
