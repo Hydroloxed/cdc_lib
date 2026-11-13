@@ -45,6 +45,7 @@ namespace cdc_lib::sdef
                 // clang-format on
                 default: assert(false && "Unsupported primitive type. Bug in sobj::read_primitive"); break;
             }
+            return {};
         }
 
         sobj_node parse_sobj_impl( sdef_node* a_sdef,
