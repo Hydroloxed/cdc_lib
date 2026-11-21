@@ -432,8 +432,8 @@ namespace operation_find_references
             ( "s,section", "The section id to search for", cxxopts::value< int >() )
             ( "t,type", "The type id to search for", cxxopts::value< std::string >() )
             ( "h,help", "Print help" );
-        options.parse_positional( {"operation", "file", "section", "type"} );
-        options.positional_help( "<file> <section> <type>" );
+        options.parse_positional( {"operation", "file", "type", "section"} );
+        options.positional_help( "<file> <type> <section>" );
         auto result = options.parse( a_argc, a_argv );
         if( result.contains( "help") )
         {
